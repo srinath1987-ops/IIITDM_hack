@@ -7,9 +7,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
+import { useTheme } from '@/context/ThemeContext';
+import { Moon, Sun } from 'lucide-react';
 
 const Settings = () => {
   const { toast } = useToast();
+  const { theme, toggleTheme } = useTheme();
   const [name, setName] = React.useState('Rajesh Kumar');
   const [email, setEmail] = React.useState('rajesh.k@example.com');
   const [phone, setPhone] = React.useState('9876543210');
@@ -36,19 +39,19 @@ const Settings = () => {
 
   return (
     <MainLayout>
-      <div className="pt-16">
+      <div className="pt-4">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold">Settings</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl font-bold dark:text-white">Settings</h1>
+          <p className="text-muted-foreground dark:text-gray-400">
             Manage your account and preferences
           </p>
         </div>
 
         <div className="grid gap-6">
-          <Card>
+          <Card className="dark:bg-gray-800 dark:border-gray-700">
             <CardHeader>
-              <CardTitle>Profile Information</CardTitle>
-              <CardDescription>
+              <CardTitle className="dark:text-white">Profile Information</CardTitle>
+              <CardDescription className="dark:text-gray-400">
                 Update your personal and vehicle details
               </CardDescription>
             </CardHeader>
@@ -56,52 +59,84 @@ const Settings = () => {
               <form onSubmit={handleSaveProfile} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="name">Full Name</Label>
+                    <Label htmlFor="name" className="dark:text-gray-300">Full Name</Label>
                     <Input 
                       id="name" 
                       value={name}
                       onChange={(e) => setName(e.target.value)}
+                      className="dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                     />
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="email">Email Address</Label>
+                    <Label htmlFor="email" className="dark:text-gray-300">Email Address</Label>
                     <Input 
                       id="email" 
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
+                      className="dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                     />
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="phone">Phone Number</Label>
+                    <Label htmlFor="phone" className="dark:text-gray-300">Phone Number</Label>
                     <Input 
                       id="phone" 
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
+                      className="dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                     />
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="vehicle-reg">Vehicle Registration</Label>
+                    <Label htmlFor="vehicle-reg" className="dark:text-gray-300">Vehicle Registration</Label>
                     <Input 
                       id="vehicle-reg" 
                       value={vehicleReg}
                       onChange={(e) => setVehicleReg(e.target.value)}
+                      className="dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                     />
                   </div>
                 </div>
                 
-                <Button type="submit">Save Profile</Button>
+                <Button type="submit" className="dark:bg-logistics-600 dark:text-white dark:hover:bg-logistics-700">Save Profile</Button>
               </form>
             </CardContent>
           </Card>
           
-          <Card>
+          <Card className="dark:bg-gray-800 dark:border-gray-700">
             <CardHeader>
-              <CardTitle>Notification Preferences</CardTitle>
-              <CardDescription>
+              <CardTitle className="dark:text-white">Theme & Appearance</CardTitle>
+              <CardDescription className="dark:text-gray-400">
+                Customize the application appearance
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="theme-toggle" className="dark:text-gray-300">Dark Mode</Label>
+                  <p className="text-sm text-muted-foreground dark:text-gray-400">
+                    {theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+                  </p>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Sun className={`h-5 w-5 ${theme === 'light' ? 'text-amber-500' : 'text-gray-500 dark:text-gray-400'}`} />
+                  <Switch
+                    id="theme-toggle"
+                    checked={theme === 'dark'}
+                    onCheckedChange={toggleTheme}
+                  />
+                  <Moon className={`h-5 w-5 ${theme === 'dark' ? 'text-indigo-500' : 'text-gray-500 dark:text-gray-400'}`} />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="dark:bg-gray-800 dark:border-gray-700">
+            <CardHeader>
+              <CardTitle className="dark:text-white">Notification Preferences</CardTitle>
+              <CardDescription className="dark:text-gray-400">
                 Customize your alert and notification settings
               </CardDescription>
             </CardHeader>
@@ -110,8 +145,8 @@ const Settings = () => {
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
-                      <Label htmlFor="notify-tolls">Toll Plaza Alerts</Label>
-                      <p className="text-sm text-muted-foreground">
+                      <Label htmlFor="notify-tolls" className="dark:text-gray-300">Toll Plaza Alerts</Label>
+                      <p className="text-sm text-muted-foreground dark:text-gray-400">
                         Receive notifications before approaching toll plazas
                       </p>
                     </div>
@@ -124,8 +159,8 @@ const Settings = () => {
                   
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
-                      <Label htmlFor="notify-weather">Weather Alerts</Label>
-                      <p className="text-sm text-muted-foreground">
+                      <Label htmlFor="notify-weather" className="dark:text-gray-300">Weather Alerts</Label>
+                      <p className="text-sm text-muted-foreground dark:text-gray-400">
                         Get notified about adverse weather conditions on your route
                       </p>
                     </div>
@@ -138,8 +173,8 @@ const Settings = () => {
                   
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
-                      <Label htmlFor="data-sharing">Data Sharing</Label>
-                      <p className="text-sm text-muted-foreground">
+                      <Label htmlFor="data-sharing" className="dark:text-gray-300">Data Sharing</Label>
+                      <p className="text-sm text-muted-foreground dark:text-gray-400">
                         Share anonymous route data to improve route optimization for all users
                       </p>
                     </div>
@@ -151,22 +186,22 @@ const Settings = () => {
                   </div>
                 </div>
                 
-                <Button type="submit">Save Preferences</Button>
+                <Button type="submit" className="dark:bg-logistics-600 dark:text-white dark:hover:bg-logistics-700">Save Preferences</Button>
               </form>
             </CardContent>
           </Card>
           
-          <Card>
+          <Card className="dark:bg-gray-800 dark:border-gray-700">
             <CardHeader>
-              <CardTitle>Security</CardTitle>
-              <CardDescription>
+              <CardTitle className="dark:text-white">Security</CardTitle>
+              <CardDescription className="dark:text-gray-400">
                 Manage your account security and password
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <Button variant="outline">Change Password</Button>
-                <Button variant="outline" className="text-destructive">
+                <Button variant="outline" className="dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">Change Password</Button>
+                <Button variant="outline" className="text-destructive dark:border-gray-600 dark:hover:bg-gray-700">
                   Log Out from All Devices
                 </Button>
               </div>

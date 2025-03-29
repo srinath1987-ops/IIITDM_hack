@@ -11,8 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2 } from "lucide-react";
-import MainLayout from "@/components/MainLayout";
+import { Loader2, Truck } from "lucide-react";
 
 // Form schema for sign-in
 const signInSchema = z.object({
@@ -41,7 +40,7 @@ const Auth = () => {
     const checkSession = async () => {
       const { data } = await supabase.auth.getSession();
       if (data.session) {
-        navigate('/');
+        navigate('/dashboard');
       }
     };
     
@@ -51,7 +50,7 @@ const Auth = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         if (session) {
-          navigate('/');
+          navigate('/dashboard');
         }
       }
     );
@@ -98,7 +97,7 @@ const Auth = () => {
         description: "You have been signed in.",
       });
       
-      navigate('/');
+      navigate('/dashboard');
     } catch (error: any) {
       toast({
         title: "Error signing in",
@@ -145,130 +144,154 @@ const Auth = () => {
   };
   
   return (
-    <MainLayout>
-      <div className="flex items-center justify-center w-full min-h-[calc(100vh-4rem)] p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle className="text-2xl text-center">Welcome to TN Cargo Navigator</CardTitle>
-            <CardDescription className="text-center">
-              Sign in to your account or create a new one to get started.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="signin">Sign In</TabsTrigger>
-                <TabsTrigger value="signup">Sign Up</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="signin">
-                <Form {...signInForm}>
-                  <form onSubmit={signInForm.handleSubmit(handleSignIn)} className="space-y-4">
-                    <FormField
-                      control={signInForm.control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Email</FormLabel>
-                          <FormControl>
-                            <Input placeholder="you@example.com" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={signInForm.control}
-                      name="password"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Password</FormLabel>
-                          <FormControl>
-                            <Input type="password" placeholder="******" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <Button type="submit" className="w-full" disabled={isLoading}>
-                      {isLoading ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Signing In...
-                        </>
-                      ) : (
-                        "Sign In"
-                      )}
-                    </Button>
-                  </form>
-                </Form>
-              </TabsContent>
-              
-              <TabsContent value="signup">
-                <Form {...signUpForm}>
-                  <form onSubmit={signUpForm.handleSubmit(handleSignUp)} className="space-y-4">
-                    <FormField
-                      control={signUpForm.control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Email</FormLabel>
-                          <FormControl>
-                            <Input placeholder="you@example.com" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={signUpForm.control}
-                      name="password"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Password</FormLabel>
-                          <FormControl>
-                            <Input type="password" placeholder="******" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={signUpForm.control}
-                      name="confirmPassword"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Confirm Password</FormLabel>
-                          <FormControl>
-                            <Input type="password" placeholder="******" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <Button type="submit" className="w-full" disabled={isLoading}>
-                      {isLoading ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Creating Account...
-                        </>
-                      ) : (
-                        "Create Account"
-                      )}
-                    </Button>
-                  </form>
-                </Form>
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
-      </div>
-    </MainLayout>
+    <div className="flex items-center justify-center w-full min-h-screen p-4 bg-gray-50 dark:bg-gray-900">
+      <Card className="w-full max-w-md dark:bg-gray-800 dark:border-gray-700">
+        <CardHeader className="space-y-1">
+          <div className="flex justify-center mb-4">
+            <Truck className="h-12 w-12 text-logistics-600" />
+          </div>
+          <CardTitle className="text-2xl text-center dark:text-white">Welcome to Last Mile</CardTitle>
+          <CardDescription className="text-center dark:text-gray-400">
+            Sign in to your account or create a new one to get started.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-2 dark:bg-gray-700">
+              <TabsTrigger value="signin" className="dark:data-[state=active]:bg-gray-800 dark:data-[state=active]:text-white">Sign In</TabsTrigger>
+              <TabsTrigger value="signup" className="dark:data-[state=active]:bg-gray-800 dark:data-[state=active]:text-white">Sign Up</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="signin">
+              <Form {...signInForm}>
+                <form onSubmit={signInForm.handleSubmit(handleSignIn)} className="space-y-4">
+                  <FormField
+                    control={signInForm.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="dark:text-gray-300">Email</FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="you@example.com" 
+                            className="dark:bg-gray-700 dark:border-gray-600 dark:text-white" 
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage className="dark:text-red-400" />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={signInForm.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="dark:text-gray-300">Password</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="password" 
+                            placeholder="******" 
+                            className="dark:bg-gray-700 dark:border-gray-600 dark:text-white" 
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage className="dark:text-red-400" />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <Button type="submit" className="w-full dark:bg-logistics-600 dark:hover:bg-logistics-700" disabled={isLoading}>
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Signing In...
+                      </>
+                    ) : (
+                      "Sign In"
+                    )}
+                  </Button>
+                </form>
+              </Form>
+            </TabsContent>
+            
+            <TabsContent value="signup">
+              <Form {...signUpForm}>
+                <form onSubmit={signUpForm.handleSubmit(handleSignUp)} className="space-y-4">
+                  <FormField
+                    control={signUpForm.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="dark:text-gray-300">Email</FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="you@example.com" 
+                            className="dark:bg-gray-700 dark:border-gray-600 dark:text-white" 
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage className="dark:text-red-400" />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={signUpForm.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="dark:text-gray-300">Password</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="password" 
+                            placeholder="******" 
+                            className="dark:bg-gray-700 dark:border-gray-600 dark:text-white" 
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage className="dark:text-red-400" />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={signUpForm.control}
+                    name="confirmPassword"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="dark:text-gray-300">Confirm Password</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="password" 
+                            placeholder="******" 
+                            className="dark:bg-gray-700 dark:border-gray-600 dark:text-white" 
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage className="dark:text-red-400" />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <Button type="submit" className="w-full dark:bg-logistics-600 dark:hover:bg-logistics-700" disabled={isLoading}>
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Creating Account...
+                      </>
+                    ) : (
+                      "Create Account"
+                    )}
+                  </Button>
+                </form>
+              </Form>
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 

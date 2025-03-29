@@ -1,16 +1,21 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CheckCircle, ArrowRight, ArrowUpRight } from 'lucide-react';
+import { CheckCircle, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import Footer from '@/components/Footer';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
 const PricingPage = () => {
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
+
   const plans = [
     {
       name: "Starter",
-      price: "₹9,999",
+      monthlyPrice: "₹9,999",
+      yearlyPrice: "₹99,990",
+      yearlyDiscount: "₹19,998 savings",
       description: "Perfect for small businesses with limited routes",
       features: [
         "Up to 5 vehicles",
@@ -24,7 +29,9 @@ const PricingPage = () => {
     },
     {
       name: "Pro",
-      price: "₹24,999",
+      monthlyPrice: "₹24,999",
+      yearlyPrice: "₹249,990",
+      yearlyDiscount: "₹49,998 savings",
       description: "For growing businesses with moderate logistics needs",
       features: [
         "Up to 25 vehicles",
@@ -40,7 +47,9 @@ const PricingPage = () => {
     },
     {
       name: "Enterprise",
-      price: "Custom",
+      monthlyPrice: "Custom",
+      yearlyPrice: "Custom",
+      yearlyDiscount: "Contact sales for special annual discounts",
       description: "For large fleets with complex routing requirements",
       features: [
         "Unlimited vehicles",
@@ -81,17 +90,29 @@ const PricingPage = () => {
   ];
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen dark:bg-gray-900">
       {/* Hero Section */}
       <section className="pt-24 md:pt-32 pb-16 md:pb-24 px-4">
         <div className="container mx-auto max-w-7xl">
           <div className="text-center max-w-3xl mx-auto">
-            <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-gray-900 mb-6">
-              Simple, Transparent <span className="text-logistics-600">Pricing</span>
+            <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-gray-900 dark:text-white mb-6">
+              Simple, Transparent <span className="text-logistics-600 dark:text-logistics-400">Pricing</span>
             </h1>
-            <p className="text-lg md:text-xl text-gray-600 mb-8">
+            <p className="text-lg md:text-xl text-gray-600 dark:text-gray-400 mb-8">
               Choose the plan that's right for your business, from small fleets to nationwide operations.
             </p>
+
+            {/* Billing cycle toggle */}
+            <div className="flex justify-center items-center mb-12">
+              <ToggleGroup type="single" value={billingCycle} onValueChange={(value) => value && setBillingCycle(value as 'monthly' | 'yearly')}>
+                <ToggleGroupItem value="monthly" className="px-4 py-2 dark:text-white dark:data-[state=on]:bg-logistics-700">
+                  Monthly
+                </ToggleGroupItem>
+                <ToggleGroupItem value="yearly" className="px-4 py-2 dark:text-white dark:data-[state=on]:bg-logistics-700">
+                  Yearly <span className="ml-1 text-xs text-green-600 dark:text-green-400">(Save 20%)</span>
+                </ToggleGroupItem>
+              </ToggleGroup>
+            </div>
           </div>
         </div>
       </section>
@@ -103,9 +124,9 @@ const PricingPage = () => {
             {plans.map((plan, index) => (
               <Card 
                 key={index} 
-                className={`flex flex-col ${
+                className={`flex flex-col dark:bg-gray-800 dark:border-gray-700 ${
                   plan.popular 
-                    ? 'border-logistics-500 shadow-lg relative' 
+                    ? 'border-logistics-500 dark:border-logistics-500 shadow-lg relative' 
                     : 'border-gray-200'
                 }`}
               >
@@ -115,26 +136,31 @@ const PricingPage = () => {
                   </div>
                 )}
                 <CardHeader>
-                  <CardTitle className="text-2xl">{plan.name}</CardTitle>
+                  <CardTitle className="text-2xl dark:text-white">{plan.name}</CardTitle>
                   <div className="mt-4">
-                    <span className="text-3xl font-bold">{plan.price}</span>
-                    {plan.name !== "Enterprise" && <span className="text-gray-500 ml-1">/month</span>}
+                    <span className="text-3xl font-bold dark:text-white">
+                      {billingCycle === 'monthly' ? plan.monthlyPrice : plan.yearlyPrice}
+                    </span>
+                    {plan.name !== "Enterprise" && <span className="text-gray-500 dark:text-gray-400 ml-1">/{billingCycle === 'monthly' ? 'month' : 'year'}</span>}
                   </div>
-                  <p className="text-gray-500 mt-2">{plan.description}</p>
+                  {billingCycle === 'yearly' && plan.name !== "Enterprise" && (
+                    <p className="text-green-600 dark:text-green-400 text-sm mt-1">{plan.yearlyDiscount}</p>
+                  )}
+                  <p className="text-gray-500 dark:text-gray-400 mt-2">{plan.description}</p>
                 </CardHeader>
                 <CardContent className="flex-grow">
                   <ul className="space-y-3">
                     {plan.features.map((feature, i) => (
                       <li key={i} className="flex items-start">
-                        <CheckCircle className="h-5 w-5 text-logistics-600 mr-2 flex-shrink-0 mt-0.5" />
-                        <span>{feature}</span>
+                        <CheckCircle className="h-5 w-5 text-logistics-600 dark:text-logistics-400 mr-2 flex-shrink-0 mt-0.5" />
+                        <span className="dark:text-gray-300">{feature}</span>
                       </li>
                     ))}
                   </ul>
                 </CardContent>
                 <CardFooter>
                   <Button 
-                    className={`w-full ${plan.popular ? 'bg-logistics-600 hover:bg-logistics-700' : ''}`} 
+                    className={`w-full ${plan.popular ? 'bg-logistics-600 hover:bg-logistics-700 dark:bg-logistics-500 dark:hover:bg-logistics-600' : ''}`} 
                     variant={plan.popular ? 'default' : 'outline'}
                     asChild
                   >
@@ -151,20 +177,20 @@ const PricingPage = () => {
       </section>
 
       {/* FAQ Section */}
-      <section className="py-16 px-4 bg-gray-50">
+      <section className="py-16 px-4 bg-gray-50 dark:bg-gray-800">
         <div className="container mx-auto max-w-4xl">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">Frequently Asked Questions</h2>
-            <p className="text-gray-600">
+            <h2 className="text-3xl font-bold mb-4 dark:text-white">Frequently Asked Questions</h2>
+            <p className="text-gray-600 dark:text-gray-400">
               Find answers to common questions about our platform and pricing
             </p>
           </div>
 
           <div className="space-y-6">
             {faqs.map((faq, index) => (
-              <div key={index} className="bg-white rounded-lg shadow-sm p-6">
-                <h3 className="text-xl font-semibold mb-3">{faq.question}</h3>
-                <p className="text-gray-600">{faq.answer}</p>
+              <div key={index} className="bg-white dark:bg-gray-700 rounded-lg shadow-sm p-6">
+                <h3 className="text-xl font-semibold mb-3 dark:text-white">{faq.question}</h3>
+                <p className="text-gray-600 dark:text-gray-300">{faq.answer}</p>
               </div>
             ))}
           </div>
@@ -172,7 +198,7 @@ const PricingPage = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-16 px-4 bg-logistics-600 text-white">
+      <section className="py-16 px-4 bg-logistics-600 dark:bg-logistics-700 text-white">
         <div className="container mx-auto max-w-7xl text-center">
           <h2 className="text-3xl md:text-4xl font-bold mb-6">Ready to optimize your fleet?</h2>
           <p className="text-lg mb-8 max-w-2xl mx-auto">

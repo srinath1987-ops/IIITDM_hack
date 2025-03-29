@@ -5,6 +5,15 @@ import { Truck, Menu, X, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
@@ -27,32 +36,57 @@ const Navbar = () => {
     }
   };
 
+  // Get user initials for avatar
+  const getUserInitials = () => {
+    if (!user || !user.email) return 'U';
+    const email = user.email;
+    const username = email.split('@')[0];
+    return username.charAt(0).toUpperCase();
+  };
+
   return (
-    <nav className="bg-white border-b border-gray-200 px-4 py-2.5 fixed w-full z-50">
+    <nav className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-2.5 fixed w-full z-50">
       <div className="flex justify-between items-center mx-auto">
-        <Link to="/" className="flex items-center space-x-3">
+        <Link to="/dashboard" className="flex items-center space-x-3">
           <Truck className="h-8 w-8 text-logistics-600" />
-          <span className="self-center text-xl font-semibold whitespace-nowrap">
-            TN Cargo Navigator
+          <span className="self-center text-xl font-semibold whitespace-nowrap dark:text-white">
+            Last Mile
           </span>
         </Link>
         
         <div className="hidden md:flex items-center space-x-4">
           {user ? (
             <>
-              <Button variant="link" asChild>
-                <Link to="/">Dashboard</Link>
+              <Button variant="link" asChild className="dark:text-gray-300">
+                <Link to="/dashboard">Dashboard</Link>
               </Button>
-              <Button variant="link" asChild>
+              <Button variant="link" asChild className="dark:text-gray-300">
                 <Link to="/ride">Plan Route</Link>
               </Button>
-              <Button variant="link" asChild>
+              <Button variant="link" asChild className="dark:text-gray-300">
                 <Link to="/history">History</Link>
               </Button>
-              <Button variant="ghost" onClick={handleSignOut} className="flex items-center">
-                <LogOut className="h-4 w-4 mr-2" />
-                Sign Out
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="p-0 h-10 w-10 rounded-full">
+                    <Avatar className="h-9 w-9">
+                      <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${getUserInitials()}`} alt="User avatar" />
+                      <AvatarFallback>{getUserInitials()}</AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link to="/settings">Settings</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleSignOut} className="text-red-600">
+                    <LogOut className="h-4 w-4 mr-2" />
+                    <span>Log out</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </>
           ) : (
             <Button variant="link" asChild>
@@ -75,18 +109,21 @@ const Navbar = () => {
 
       {/* Mobile menu */}
       {isMenuOpen && (
-        <div className="md:hidden bg-white w-full py-2 px-4 pt-2 border-t border-gray-200 animate-fade-in">
+        <div className="md:hidden bg-white dark:bg-gray-800 w-full py-2 px-4 pt-2 border-t border-gray-200 dark:border-gray-700 animate-fade-in">
           <div className="flex flex-col space-y-2">
             {user ? (
               <>
-                <Button variant="ghost" className="justify-start" asChild>
-                  <Link to="/" onClick={() => setIsMenuOpen(false)}>Dashboard</Link>
+                <Button variant="ghost" className="justify-start dark:text-gray-300" asChild>
+                  <Link to="/dashboard" onClick={() => setIsMenuOpen(false)}>Dashboard</Link>
                 </Button>
-                <Button variant="ghost" className="justify-start" asChild>
+                <Button variant="ghost" className="justify-start dark:text-gray-300" asChild>
                   <Link to="/ride" onClick={() => setIsMenuOpen(false)}>Plan Route</Link>
                 </Button>
-                <Button variant="ghost" className="justify-start" asChild>
+                <Button variant="ghost" className="justify-start dark:text-gray-300" asChild>
                   <Link to="/history" onClick={() => setIsMenuOpen(false)}>History</Link>
+                </Button>
+                <Button variant="ghost" className="justify-start dark:text-gray-300" asChild>
+                  <Link to="/settings" onClick={() => setIsMenuOpen(false)}>Settings</Link>
                 </Button>
                 <Button 
                   variant="ghost" 

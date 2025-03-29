@@ -70,12 +70,13 @@ const HomePage = () => {
             </div>
 
             <div className="hidden md:block relative">
-              <img 
-                src="https://images.unsplash.com/photo-1586366775916-8f009a0e4848?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" 
-                alt="Freight transport" 
-                className="rounded-lg shadow-xl w-full max-w-lg mx-auto object-cover" 
-              />
-              <div className="absolute inset-0 bg-logistics-600/10 rounded-lg"></div>
+            <img 
+            src="https://iili.io/3AH7Ihg.png" 
+            alt="Freight transport" 
+            className="rounded-lg w-[700px] h-[400px] mx-auto object-cover" 
+          />
+
+              {/* <div className="absolute inset-0 bg-logistics-600/10 rounded-lg"></div> */}
             </div>
           </div>
         </div>
