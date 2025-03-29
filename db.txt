@@ -1,0 +1,186 @@
+-- Enable UUID extension
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- User profiles table that references Supabase auth
+CREATE TABLE user_profiles (
+    id UUID PRIMARY KEY REFERENCES auth.users(id),
+    name TEXT,
+    phone TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Vehicles table to store different vehicle types and their specifications
+CREATE TABLE vehicles (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name TEXT NOT NULL,
+    type TEXT NOT NULL, -- Lorry, Truck, 10-Wheeler, 14-Wheeler
+    max_weight DECIMAL NOT NULL, -- in tons
+    max_volume DECIMAL, -- in cubic meters
+    length DECIMAL, -- in meters
+    width DECIMAL, -- in meters
+    height DECIMAL, -- in meters
+    axle_count INTEGER,
+    fuel_efficiency DECIMAL, -- km per liter
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Locations table to store frequently used locations
+CREATE TABLE locations (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name TEXT NOT NULL,
+    address TEXT,
+    city TEXT,
+    state TEXT,
+    postal_code TEXT,
+    latitude DECIMAL NOT NULL,
+    longitude DECIMAL NOT NULL,
+    is_toll_plaza BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Road segments table to store road information
+CREATE TABLE road_segments (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name TEXT,
+    start_location_id UUID REFERENCES locations(id),
+    end_location_id UUID REFERENCES locations(id),
+    distance DECIMAL NOT NULL, -- in kilometers
+    road_type TEXT, -- National Highway, State Highway, Rural
+    road_quality TEXT, -- Good, Average, Poor
+    width DECIMAL, -- in meters
+    weight_limit DECIMAL, -- in tons
+    height_limit DECIMAL, -- in meters
+    speed_limit DECIMAL, -- in km/h
+    has_restrictions BOOLEAN DEFAULT FALSE,
+    restriction_details JSONB,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Toll plazas table to store toll information
+CREATE TABLE toll_plazas (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    location_id UUID REFERENCES locations(id),
+    name TEXT NOT NULL,
+    highway_name TEXT,
+    is_fastag_enabled BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Toll rates table to store vehicle-specific toll rates
+CREATE TABLE toll_rates (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    toll_plaza_id UUID REFERENCES toll_plazas(id),
+    vehicle_type TEXT NOT NULL, -- Lorry, Truck, 10-Wheeler, 14-Wheeler
+    rate DECIMAL NOT NULL, -- in rupees
+    effective_from DATE,
+    effective_to DATE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Weather conditions table to store weather data
+CREATE TABLE weather_conditions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    location_id UUID REFERENCES locations(id),
+    condition TEXT, -- Clear, Rainy, Foggy, etc.
+    temperature DECIMAL,
+    precipitation DECIMAL,
+    visibility DECIMAL,
+    wind_speed DECIMAL,
+    recorded_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Traffic conditions table to store real-time and historical traffic data
+CREATE TABLE traffic_conditions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    road_segment_id UUID REFERENCES road_segments(id),
+    congestion_level TEXT, -- Low, Medium, High
+    speed_factor DECIMAL, -- factor to multiply normal speed (0-1)
+    delay_minutes INTEGER,
+    recorded_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Fuel prices table to store current and historical fuel prices
+CREATE TABLE fuel_prices (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    state TEXT NOT NULL,
+    city TEXT,
+    diesel_price DECIMAL NOT NULL,
+    petrol_price DECIMAL NOT NULL,
+    effective_date DATE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Routes table to store optimized routes (updated to reference user_profiles)
+CREATE TABLE routes (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID REFERENCES user_profiles(id),
+    origin_id UUID REFERENCES locations(id),
+    destination_id UUID REFERENCES locations(id),
+    vehicle_id UUID REFERENCES vehicles(id),
+    cargo_weight DECIMAL, -- in tons
+    cargo_type TEXT,
+    total_distance DECIMAL, -- in kilometers
+    estimated_time INTEGER, -- in minutes
+    total_toll_cost DECIMAL, -- in rupees
+    estimated_fuel_cost DECIMAL, -- in rupees
+    route_geometry JSONB, -- GeoJSON for the route
+    waypoints JSONB, -- Array of waypoint locations
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Route segments table to break down routes into segments
+CREATE TABLE route_segments (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    route_id UUID REFERENCES routes(id),
+    road_segment_id UUID REFERENCES road_segments(id),
+    sequence_number INTEGER,
+    distance DECIMAL,
+    estimated_time INTEGER, -- in minutes
+    toll_cost DECIMAL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Travel history table to store completed trips (updated to reference user_profiles)
+CREATE TABLE travel_history (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID REFERENCES user_profiles(id),
+    route_id UUID REFERENCES routes(id),
+    actual_start_time TIMESTAMP WITH TIME ZONE,
+    actual_end_time TIMESTAMP WITH TIME ZONE,
+    actual_distance DECIMAL,
+    actual_fuel_cost DECIMAL,
+    actual_toll_cost DECIMAL,
+    notes TEXT,
+    rating INTEGER, -- User rating of the route
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Add Row Level Security policies for tables with user data
+ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can view their own profiles"
+  ON user_profiles FOR ALL
+  USING (auth.uid() = id);
+
+ALTER TABLE routes ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can manage their own routes"
+  ON routes FOR ALL
+  USING (auth.uid() = user_id);
+
+ALTER TABLE travel_history ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can manage their own travel history"
+  ON travel_history FOR ALL
+  USING (auth.uid() = user_id);
