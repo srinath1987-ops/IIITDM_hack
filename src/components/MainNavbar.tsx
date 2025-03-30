@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Truck, Menu, X, User, Settings, LogOut, LayoutDashboard } from 'lucide-react';
+import { Truck, Menu, X, User, Settings, LogOut, LayoutDashboard, ChevronDown, MapPin, Building2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -14,11 +13,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { cn } from '@/lib/utils';
+import { useUserData } from '@/hooks/useUserData';
 
 const MainNavbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-  const { user, signOut } = useAuth();
+  const { user, signOut, isAuthenticated } = useAuth();
+  const { profile } = useUserData();
   const { toast } = useToast();
   const location = useLocation();
 
@@ -101,38 +103,85 @@ const MainNavbar = () => {
 
           {/* Auth Button or User Menu */}
           <div className="hidden md:flex items-center gap-2">
-            {user ? (
+            {isAuthenticated ? (
               <>
-                <Button variant="outline" asChild className="mr-2">
-                  <Link to="/dashboard" className="flex items-center gap-2">
-                    <LayoutDashboard className="h-4 w-4" />
-                    Dashboard
-                  </Link>
-                </Button>
+                <Link
+                  to="/dashboard"
+                  className={cn(
+                    "text-sm font-medium transition-colors hover:text-primary",
+                    location.pathname === "/dashboard"
+                      ? "text-primary"
+                      : "text-muted-foreground"
+                  )}
+                >
+                  Dashboard
+                </Link>
+                <Link
+                  to="/history"
+                  className={cn(
+                    "text-sm font-medium transition-colors hover:text-primary",
+                    location.pathname === "/history"
+                      ? "text-primary"
+                      : "text-muted-foreground"
+                  )}
+                >
+                  History
+                </Link>
+                <Link
+                  to="/ride"
+                  className={cn(
+                    "text-sm font-medium transition-colors hover:text-primary",
+                    location.pathname === "/ride" ? "text-primary" : "text-muted-foreground"
+                  )}
+                >
+                  Ride
+                </Link>
+                
+                {/* New navigation items for data management */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="p-0 h-10 w-10 rounded-full">
-                      <Avatar className="h-9 w-9">
-                        <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${getUserInitials()}`} alt="User avatar" />
-                        <AvatarFallback>{getUserInitials()}</AvatarFallback>
-                      </Avatar>
+                    <Button variant="ghost" className={cn(
+                      "text-sm font-medium transition-colors hover:text-primary",
+                      ["/vehicles", "/locations", "/create-route"].includes(location.pathname)
+                        ? "text-primary"
+                        : "text-muted-foreground"
+                    )}>
+                      Management <ChevronDown className="ml-1 h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
                     <DropdownMenuItem asChild>
-                      <Link to="/settings" className="flex items-center">
-                        <Settings className="h-4 w-4 mr-2" />
-                        <span>Settings</span>
-                      </Link>
+                      <Link to="/vehicles">Vehicles</Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={handleSignOut} className="text-red-600">
-                      <LogOut className="h-4 w-4 mr-2" />
-                      <span>Log out</span>
+                    <DropdownMenuItem asChild>
+                      <Link to="/locations">Locations</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/routes">Routes</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/create-route">Create Route</Link>
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
+
+                {/* Add Register link if user doesn't have an organization */}
+                {isAuthenticated && !profile?.organization_id && (
+                  <Link
+                    to="/register"
+                    className={cn(
+                      "text-sm font-medium transition-colors hover:text-primary",
+                      location.pathname === "/register"
+                        ? "text-primary"
+                        : "text-muted-foreground"
+                    )}
+                  >
+                    <span className="flex items-center">
+                      <Building2 className="mr-1 h-4 w-4" />
+                      Register Org
+                    </span>
+                  </Link>
+                )}
               </>
             ) : (
               <Button asChild className="bg-logistics-600 hover:bg-logistics-700 dark:bg-logistics-500 dark:hover:bg-logistics-600">
@@ -173,7 +222,7 @@ const MainNavbar = () => {
                 </Link>
               ))}
               
-              {user ? (
+              {isAuthenticated ? (
                 <>
                   <Link
                     to="/dashboard"
@@ -183,6 +232,76 @@ const MainNavbar = () => {
                     <LayoutDashboard className="h-4 w-4 mr-2" />
                     Dashboard
                   </Link>
+                  <Link
+                    to="/history"
+                    className="px-4 py-3 rounded-md text-sm font-medium flex items-center"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    <LayoutDashboard className="h-4 w-4 mr-2" />
+                    History
+                  </Link>
+                  <Link
+                    to="/ride"
+                    className="px-4 py-3 rounded-md text-sm font-medium flex items-center"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    <Truck className="h-4 w-4 mr-2" />
+                    Ride
+                  </Link>
+                  
+                  {/* Management section */}
+                  <div className="px-4 py-1 mt-2 text-sm font-semibold text-gray-500 dark:text-gray-400">
+                    Management
+                  </div>
+                  
+                  <Link
+                    to="/vehicles"
+                    className="px-4 py-3 rounded-md text-sm font-medium flex items-center"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    <Truck className="h-4 w-4 mr-2" />
+                    Vehicles
+                  </Link>
+                  
+                  <Link
+                    to="/locations"
+                    className="px-4 py-3 rounded-md text-sm font-medium flex items-center"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    <MapPin className="h-4 w-4 mr-2" />
+                    Locations
+                  </Link>
+                  
+                  <Link
+                    to="/routes"
+                    className="px-4 py-3 rounded-md text-sm font-medium flex items-center"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    <MapPin className="h-4 w-4 mr-2" />
+                    My Routes
+                  </Link>
+                  
+                  <Link
+                    to="/create-route"
+                    className="px-4 py-3 rounded-md text-sm font-medium flex items-center"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    <MapPin className="h-4 w-4 mr-2" />
+                    Create Route
+                  </Link>
+                  
+                  {/* Add Register link if user doesn't have an organization */}
+                  {isAuthenticated && !profile?.organization_id && (
+                    <Link
+                      to="/register"
+                      className="px-4 py-3 rounded-md text-sm font-medium flex items-center"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      <Building2 className="h-4 w-4 mr-2" />
+                      Register Org
+                    </Link>
+                  )}
+                  
                   <Link
                     to="/settings"
                     className="px-4 py-3 rounded-md text-sm font-medium flex items-center"

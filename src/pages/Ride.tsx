@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import MainLayout from '@/components/MainLayout';
@@ -22,7 +21,9 @@ import {
   Loader2
 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
-
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { Slider } from '@/components/ui/slider';
 
 interface Toll {
   name: string;
@@ -249,21 +250,47 @@ const popularRoutes = [
 ];
 
 const Ride = () => {
-  const { toast } = useToast();
   const isMobile = useIsMobile();
-  const [startLocation, setStartLocation] = useState('Chennai, Tamil Nadu');
-  const [destination, setDestination] = useState('Madurai, Tamil Nadu');
-  const [vehicleType, setVehicleType] = useState('truck');
-  const [goodsType, setGoodsType] = useState('construction');
-  const [weight, setWeight] = useState('15');
-  const [additionalInfo, setAdditionalInfo] = useState('');
-  const [routes, setRoutes] = useState<Route[]>(routeOptions.default);
-  const [selectedRoute, setSelectedRoute] = useState<Route>(routeOptions.default[0]);
-  const [showRoutes, setShowRoutes] = useState(true);
-  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
+  const [origin, setOrigin] = useState('');
+  const [destination, setDestination] = useState('');
+  const [selectedRoute, setSelectedRoute] = useState<Route | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [vehicleType, setVehicleType] = useState<string>('');
+  const [goodsType, setGoodsType] = useState('');
+  const [weight, setWeight] = useState<number[]>([10]);
+  const [showRoutes, setShowRoutes] = useState(false);
+  
+  // Fetch vehicles from Supabase
+  const { data: vehicles, isLoading: isLoadingVehicles } = useQuery({
+    queryKey: ['vehicles'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('vehicles')
+        .select('*')
+        .order('name');
+      
+      if (error) throw error;
+      return data || [];
+    }
+  });
+  
+  // Fetch locations from Supabase for origin/destination selection
+  const { data: locations, isLoading: isLoadingLocations } = useQuery({
+    queryKey: ['locations'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('locations')
+        .select('*')
+        .order('name');
+      
+      if (error) throw error;
+      return data || [];
+    }
+  });
 
   const handleFindRoutes = () => {
-    setLoading(true);
+    setIsLoading(true);
     toast({
       title: "Finding optimal routes",
       description: "Analyzing traffic, tolls, and weather conditions...",
@@ -273,10 +300,9 @@ const Ride = () => {
     setTimeout(() => {
       // Get routes based on vehicle type
       const vehicleRoutes = routeOptions[vehicleType as keyof typeof routeOptions] || routeOptions.default;
-      setRoutes(vehicleRoutes);
       setSelectedRoute(vehicleRoutes[0]);
       setShowRoutes(true);
-      setLoading(false);
+      setIsLoading(false);
       
       toast({
         title: "Routes found",
@@ -296,7 +322,7 @@ const Ride = () => {
   };
 
   const handleSelectPopularRoute = (from: string, to: string) => {
-    setStartLocation(from);
+    setOrigin(from);
     setDestination(to);
     
     toast({
@@ -319,232 +345,274 @@ const Ride = () => {
 
   return (
     <MainLayout>
-      <div className="pt-16">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold">Plan Your Route</h1>
-          <p className="text-muted-foreground">
-            Find the most efficient route for your cargo
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="md:col-span-1 space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Journey Details</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="start">Start Location</Label>
-                  <Input 
-                    id="start" 
-                    placeholder="Enter start location" 
-                    value={startLocation}
-                    onChange={(e) => setStartLocation(e.target.value)}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="destination">Destination</Label>
-                  <Input 
-                    id="destination" 
-                    placeholder="Enter destination" 
-                    value={destination}
-                    onChange={(e) => setDestination(e.target.value)}
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Popular routes:</p>
-                  <div className="flex flex-wrap gap-2">
-                    {popularRoutes.map((route, index) => (
-                      <button
-                        key={index}
-                        onClick={() => handleSelectPopularRoute(route.from, route.to)}
-                        className="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full text-gray-700 dark:text-gray-300"
-                      >
-                        {route.from.split(',')[0]} → {route.to.split(',')[0]}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="vehicle-type">Vehicle Type</Label>
-                  <Select 
-                    value={vehicleType}
-                    onValueChange={setVehicleType}
-                  >
-                    <SelectTrigger id="vehicle-type">
-                      <SelectValue placeholder="Select vehicle type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {vehicleTypes.map((type) => (
-                        <SelectItem key={type.value} value={type.value}>
-                          {type.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="goods-type">Goods Type</Label>
-                  <Select 
-                    value={goodsType}
-                    onValueChange={setGoodsType}
-                  >
-                    <SelectTrigger id="goods-type">
-                      <SelectValue placeholder="Select goods type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {goodsTypes.map((type) => (
-                        <SelectItem key={type.value} value={type.value}>
-                          {type.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="weight">Weight (tons)</Label>
-                  <Input 
-                    id="weight" 
-                    type="number" 
-                    placeholder="Enter weight in tons"
-                    value={weight}
-                    onChange={(e) => setWeight(e.target.value)}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="additional-info">Additional Information</Label>
-                  <Input 
-                    id="additional-info" 
-                    placeholder="Any specific requirements"
-                    value={additionalInfo}
-                    onChange={(e) => setAdditionalInfo(e.target.value)}
-                  />
-                </div>
-                
-                <Button 
-                  className="w-full" 
-                  onClick={handleFindRoutes}
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Finding Routes...
-                    </>
-                  ) : (
-                    'Find Optimal Routes'
-                  )}
-                </Button>
-              </CardContent>
-            </Card>
+      <div className="flex flex-col lg:flex-row h-[calc(100vh-4rem)]">
+        <div className="lg:w-1/3 p-4 overflow-y-auto">
+          <Tabs defaultValue="plan" className="h-full flex flex-col">
+            <TabsList className="mb-4">
+              <TabsTrigger value="plan">Plan Route</TabsTrigger>
+              <TabsTrigger value="history">History</TabsTrigger>
+            </TabsList>
             
-            {showRoutes && (
-              <Card className={isMobile ? "" : "sticky top-20"}>
+            <TabsContent value="plan" className="flex-grow">
+              <Card className="mb-4">
                 <CardHeader>
-                  <CardTitle className="text-lg">Route Options</CardTitle>
+                  <CardTitle>Route Details</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  {routes.map((route) => (
-                    <div 
-                      key={route.id}
-                      onClick={() => handleSelectRoute(route)}
-                      className={`route-card cursor-pointer p-3 border rounded-lg transition-all duration-200 hover:bg-gray-50 dark:hover:bg-gray-800 ${
-                        selectedRoute.id === route.id ? 'ring-2 ring-primary border-transparent' : ''
-                      } ${route.isRecommended ? 'bg-logistics-50 dark:bg-logistics-900/20' : ''}`}
-                    >
-                      <div className="flex justify-between items-start mb-2">
-                        <div className="font-medium flex items-center">
-                          {route.name}
-                          {route.isRecommended && (
-                            <span className="ml-2 inline-flex items-center rounded-full bg-logistics-100 dark:bg-logistics-900/50 px-2 py-0.5 text-xs font-medium text-logistics-800 dark:text-logistics-300">
-                              <ThumbsUp className="h-3 w-3 mr-1" />
-                              Best
-                            </span>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="origin">Origin</Label>
+                      <Select value={origin} onValueChange={setOrigin}>
+                        <SelectTrigger id="origin">
+                          <SelectValue placeholder="Select origin" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {isLoadingLocations ? (
+                            <div className="flex items-center justify-center p-2">
+                              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                              <span>Loading...</span>
+                            </div>
+                          ) : locations && locations.length > 0 ? (
+                            locations.map(location => (
+                              <SelectItem key={location.id} value={location.id}>
+                                {location.name}{location.city ? `, ${location.city}` : ''}
+                              </SelectItem>
+                            ))
+                          ) : (
+                            <SelectItem value="none" disabled>No locations found</SelectItem>
                           )}
-                        </div>
-                        {getWeatherIcon(route.weather)}
-                      </div>
-                      
-                      <div className="grid grid-cols-2 gap-2 text-sm">
-                        <div className="flex items-center">
-                          <MapIcon className="h-4 w-4 mr-1 text-muted-foreground" />
-                          <span>{route.distance} km</span>
-                        </div>
-                        <div className="flex items-center">
-                          <Clock className="h-4 w-4 mr-1 text-muted-foreground" />
-                          <span>{route.duration} hours</span>
-                        </div>
-                        <div className="flex items-center">
-                          <Banknote className="h-4 w-4 mr-1 text-muted-foreground" />
-                          <span>₹{route.tollCost} toll</span>
-                        </div>
-                        <div className="flex items-center">
-                          <Fuel className="h-4 w-4 mr-1 text-muted-foreground" />
-                          <span>₹{route.fuelCost} fuel</span>
-                        </div>
-                      </div>
-                      
-                      {route.timeSaved > 0 && (
-                        <div className="mt-2 text-xs font-medium text-logistics-700 dark:text-logistics-400">
-                          Save {route.timeSaved} hours compared to longest route
-                        </div>
-                      )}
+                        </SelectContent>
+                      </Select>
                     </div>
-                  ))}
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="destination">Destination</Label>
+                      <Select value={destination} onValueChange={setDestination}>
+                        <SelectTrigger id="destination">
+                          <SelectValue placeholder="Select destination" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {isLoadingLocations ? (
+                            <div className="flex items-center justify-center p-2">
+                              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                              <span>Loading...</span>
+                            </div>
+                          ) : locations && locations.length > 0 ? (
+                            locations.map(location => (
+                              <SelectItem key={location.id} value={location.id}>
+                                {location.name}{location.city ? `, ${location.city}` : ''}
+                              </SelectItem>
+                            ))
+                          ) : (
+                            <SelectItem value="none" disabled>No locations found</SelectItem>
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="vehicle-type">Vehicle Type</Label>
+                      <Select value={vehicleType} onValueChange={setVehicleType}>
+                        <SelectTrigger id="vehicle-type">
+                          <SelectValue placeholder="Select vehicle type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {isLoadingVehicles ? (
+                            <div className="flex items-center justify-center p-2">
+                              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                              <span>Loading...</span>
+                            </div>
+                          ) : vehicles && vehicles.length > 0 ? (
+                            vehicles.map(vehicle => (
+                              <SelectItem key={vehicle.id} value={vehicle.id}>
+                                {vehicle.name} - {vehicle.type}
+                              </SelectItem>
+                            ))
+                          ) : (
+                            <SelectItem value="none" disabled>No vehicles found</SelectItem>
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    {vehicleType && vehicles && (
+                      <div className="rounded-lg border p-3 text-sm">
+                        {(() => {
+                          const vehicle = vehicles.find(v => v.id === vehicleType);
+                          if (!vehicle) return null;
+                          
+                          return (
+                            <div className="space-y-2">
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>Max Weight:</div>
+                                <div className="font-medium">{vehicle.max_weight} tons</div>
+                                
+                                {vehicle.fuel_efficiency && (
+                                  <>
+                                    <div>Fuel Efficiency:</div>
+                                    <div className="font-medium">{vehicle.fuel_efficiency} km/L</div>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    )}
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="goods-type">Goods Type</Label>
+                      <Select value={goodsType} onValueChange={setGoodsType}>
+                        <SelectTrigger id="goods-type">
+                          <SelectValue placeholder="Select goods type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="electronics">Electronics</SelectItem>
+                          <SelectItem value="furniture">Furniture</SelectItem>
+                          <SelectItem value="clothing">Clothing</SelectItem>
+                          <SelectItem value="food">Food & Beverages</SelectItem>
+                          <SelectItem value="construction">Construction Materials</SelectItem>
+                          <SelectItem value="machinery">Machinery</SelectItem>
+                          <SelectItem value="chemicals">Chemicals</SelectItem>
+                          <SelectItem value="other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <div className="flex justify-between">
+                        <Label htmlFor="weight">Cargo Weight (tons)</Label>
+                        <span className="text-sm text-muted-foreground">{weight[0]} tons</span>
+                      </div>
+                      <Slider
+                        id="weight"
+                        min={1}
+                        max={40}
+                        step={1}
+                        value={weight}
+                        onValueChange={setWeight}
+                      />
+                    </div>
+                  </div>
+                  
+                  <Button
+                    className="w-full mt-6"
+                    onClick={handleFindRoutes}
+                    disabled={!origin || !destination || !vehicleType || isLoading}
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Finding Routes...
+                      </>
+                    ) : (
+                      <>Find Routes</>
+                    )}
+                  </Button>
                 </CardContent>
               </Card>
-            )}
-          </div>
-          
-          <div className="md:col-span-2 space-y-6">
-            <Card className="h-[calc(100vh-170px)]">
-              <CardHeader className="pb-2">
-                <div className="flex justify-between items-center">
-                  <CardTitle className="text-lg">Route Map</CardTitle>
-                  {selectedRoute && (
-                    <div className="text-sm font-medium">
-                      {startLocation.split(',')[0]} → {destination.split(',')[0]} ({selectedRoute.distance} km)
-                    </div>
-                  )}
-                </div>
-              </CardHeader>
-              <CardContent className="h-[calc(100%-60px)]">
-                <Map 
-                  start={startLocation}
-                  destination={destination}
-                  selectedRoute={selectedRoute}
-                  vehicleType={vehicleType}
-                  goodsType={goodsType}
-                  weight={weight}
-                />
-                
-                {selectedRoute && (
-                  <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-md border">
-                    <div className="text-sm font-medium mb-2">Toll Information</div>
-                    <div className="space-y-2">
-                      {selectedRoute.tolls.map((toll: Toll, index: number) => (
-                        <div key={index} className="flex justify-between text-sm">
-                          <span>{toll.name}</span>
-                          <span className="font-medium">₹{toll.cost}</span>
+              
+              {showRoutes && (
+                <Card className={isMobile ? "" : "sticky top-20"}>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Route Options</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {routeOptions.default.map((route) => (
+                      <div 
+                        key={route.id}
+                        onClick={() => handleSelectRoute(route)}
+                        className={`route-card cursor-pointer p-3 border rounded-lg transition-all duration-200 hover:bg-gray-50 dark:hover:bg-gray-800 ${
+                          selectedRoute?.id === route.id ? 'ring-2 ring-primary border-transparent' : ''
+                        } ${route.isRecommended ? 'bg-logistics-50 dark:bg-logistics-900/20' : ''}`}
+                      >
+                        <div className="flex justify-between items-start mb-2">
+                          <div className="font-medium flex items-center">
+                            {route.name}
+                            {route.isRecommended && (
+                              <span className="ml-2 inline-flex items-center rounded-full bg-logistics-100 dark:bg-logistics-900/50 px-2 py-0.5 text-xs font-medium text-logistics-800 dark:text-logistics-300">
+                                <ThumbsUp className="h-3 w-3 mr-1" />
+                                Best
+                              </span>
+                            )}
+                          </div>
+                          {getWeatherIcon(route.weather)}
                         </div>
-                      ))}
-                      <div className="pt-2 border-t flex justify-between text-sm font-medium">
-                        <span>Total Toll</span>
-                        <span>₹{selectedRoute.tollCost}</span>
+                        
+                        <div className="grid grid-cols-2 gap-2 text-sm">
+                          <div className="flex items-center">
+                            <MapIcon className="h-4 w-4 mr-1 text-muted-foreground" />
+                            <span>{route.distance} km</span>
+                          </div>
+                          <div className="flex items-center">
+                            <Clock className="h-4 w-4 mr-1 text-muted-foreground" />
+                            <span>{route.duration} hours</span>
+                          </div>
+                          <div className="flex items-center">
+                            <Banknote className="h-4 w-4 mr-1 text-muted-foreground" />
+                            <span>₹{route.tollCost} toll</span>
+                          </div>
+                          <div className="flex items-center">
+                            <Fuel className="h-4 w-4 mr-1 text-muted-foreground" />
+                            <span>₹{route.fuelCost} fuel</span>
+                          </div>
+                        </div>
+                        
+                        {route.timeSaved > 0 && (
+                          <div className="mt-2 text-xs font-medium text-logistics-700 dark:text-logistics-400">
+                            Save {route.timeSaved} hours compared to longest route
+                          </div>
+                        )}
                       </div>
-                    </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+          </Tabs>
+        </div>
+        
+        <div className="md:col-span-2 space-y-6">
+          <Card className="h-[calc(100vh-170px)]">
+            <CardHeader className="pb-2">
+              <div className="flex justify-between items-center">
+                <CardTitle className="text-lg">Route Map</CardTitle>
+                {selectedRoute && (
+                  <div className="text-sm font-medium">
+                    {origin.split(',')[0]} → {destination.split(',')[0]} ({selectedRoute.distance} km)
                   </div>
                 )}
-              </CardContent>
-            </Card>
-          </div>
+              </div>
+            </CardHeader>
+            <CardContent className="h-[calc(100%-60px)]">
+              <Map 
+                start={origin}
+                destination={destination}
+                selectedRoute={selectedRoute}
+                vehicleType={vehicleType}
+                goodsType={goodsType}
+                weight={weight[0].toString()}
+              />
+              
+              {selectedRoute && (
+                <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-md border">
+                  <div className="text-sm font-medium mb-2">Toll Information</div>
+                  <div className="space-y-2">
+                    {selectedRoute.tolls.map((toll: Toll, index: number) => (
+                      <div key={index} className="flex justify-between text-sm">
+                        <span>{toll.name}</span>
+                        <span className="font-medium">₹{toll.cost}</span>
+                      </div>
+                    ))}
+                    <div className="pt-2 border-t flex justify-between text-sm font-medium">
+                      <span>Total Toll</span>
+                      <span>₹{selectedRoute.tollCost}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
     </MainLayout>

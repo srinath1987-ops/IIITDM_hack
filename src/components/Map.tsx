@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -24,18 +23,26 @@ interface Route {
 }
 
 interface MapProps {
-  start: string;
-  destination: string;
-  selectedRoute: Route;
+  start?: string;
+  destination?: string;
+  selectedRoute?: Route;
   vehicleType?: string;
   goodsType?: string;
   weight?: string;
+  waypoints?: Waypoint[];
+  style?: React.CSSProperties;
+}
+
+interface Waypoint {
+  latitude: number;
+  longitude: number;
+  name?: string;
 }
 
 // Using a placeholder token - in a production app, this would be an environment variable
 const MAPBOX_ACCESS_TOKEN = 'pk.eyJ1IjoiYmxpdHpqYiIsImEiOiJjbTEweDAzb20wOGhiMnRwZGNqZ2NsdXF6In0.DhETe3EckUcqEAvDDQsfLA';
 
-const Map = ({ start, destination, selectedRoute, vehicleType, goodsType, weight }: MapProps) => {
+const Map = ({ start, destination, selectedRoute, vehicleType, goodsType, weight, waypoints, style }: MapProps) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const { toast } = useToast();
@@ -85,6 +92,113 @@ const Map = ({ start, destination, selectedRoute, vehicleType, goodsType, weight
     }
   };
 
+  // Initialize map with waypoints
+  const initMapWithWaypoints = async () => {
+    if (!waypoints || waypoints.length < 2 || !mapContainer.current || !map.current || !mapLoaded) return;
+
+    try {
+      // Get coordinates
+      const startCoords: [number, number] = [waypoints[0].longitude, waypoints[0].latitude];
+      const endCoords: [number, number] = [waypoints[waypoints.length - 1].longitude, waypoints[waypoints.length - 1].latitude];
+
+      // Remove existing elements
+      const existingStartMarker = document.querySelector('.start-marker');
+      const existingEndMarker = document.querySelector('.end-marker');
+      if (existingStartMarker) existingStartMarker.remove();
+      if (existingEndMarker) existingEndMarker.remove();
+
+      // Make sure to properly remove the route source and layer if they exist
+      try {
+        if (map.current?.getLayer('route-layer')) {
+          map.current.removeLayer('route-layer');
+        }
+        if (map.current?.getSource('route')) {
+          map.current.removeSource('route');
+        }
+      } catch (e) {
+        console.log('Error removing existing route layers:', e);
+      }
+
+      // Create markers
+      const startMarkerElement = document.createElement('div');
+      startMarkerElement.className = 'start-marker';
+      startMarkerElement.style.width = '25px';
+      startMarkerElement.style.height = '25px';
+      startMarkerElement.style.backgroundImage = 'url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGZpbGw9IiMwMDdiZmYiIGQ9Ik0xMiAwYy02LjYyMyAwLTEyIDUuMzc3LTEyIDEyczUuMzc3IDEyIDEyIDEyIDEyLTUuMzc3IDEyLTEyLTUuMzc3LTEyLTEyLTEyeiIvPjxwYXRoIGQ9Ik0xMyAxMnYtMmgtMnYyaC0ydjJoMnYyaDJ2LTJoMnYtMmgtMnoiIGZpbGw9IndoaXRlIi8+PC9zdmc+)';
+      startMarkerElement.style.backgroundSize = '100%';
+      
+      const endMarkerElement = document.createElement('div');
+      endMarkerElement.className = 'end-marker';
+      endMarkerElement.style.width = '25px';
+      endMarkerElement.style.height = '25px';
+      endMarkerElement.style.backgroundImage = 'url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGZpbGw9IiNlNzFkMzYiIGQ9Ik0xMiAwYy02LjYyMyAwLTEyIDUuMzc3LTEyIDEyczUuMzc3IDEyIDEyIDEyIDEyLTUuMzc3IDEyLTEyLTUuMzc3LTEyLTEyLTEyeiIvPjxwYXRoIGQ9Ik0xOCA4aC0xMnY4aDEyeiIgZmlsbD0id2hpdGUiLz48L3N2Zz4=)';
+      endMarkerElement.style.backgroundSize = '100%';
+
+      // Add markers to the map
+      new mapboxgl.Marker(startMarkerElement)
+        .setLngLat(startCoords)
+        .setPopup(new mapboxgl.Popup().setText(waypoints[0].name || 'Start'))
+        .addTo(map.current);
+      
+      new mapboxgl.Marker(endMarkerElement)
+        .setLngLat(endCoords)
+        .setPopup(new mapboxgl.Popup().setText(waypoints[waypoints.length - 1].name || 'End'))
+        .addTo(map.current);
+
+      // Get route
+      const routes = await getRoute(startCoords, endCoords);
+      const routeGeometry = routes[0].geometry;
+
+      // Add the route to the map
+      try {
+        // Check again if source already exists before adding
+        if (!map.current?.getSource('route')) {
+          map.current?.addSource('route', {
+            type: 'geojson',
+            data: {
+              type: 'Feature',
+              properties: {},
+              geometry: routeGeometry
+            }
+          });
+        }
+        
+        if (!map.current?.getLayer('route-layer')) {
+          map.current?.addLayer({
+            id: 'route-layer',
+            type: 'line',
+            source: 'route',
+            layout: {
+              'line-join': 'round',
+              'line-cap': 'round'
+            },
+            paint: {
+              'line-color': '#10b981', // Success green color
+              'line-width': 6,
+              'line-opacity': 0.8
+            }
+          });
+        }
+      } catch (e) {
+        console.error('Error adding route source/layer:', e);
+      }
+
+      // Fit the map to show all waypoints with padding
+      const bounds = new mapboxgl.LngLatBounds()
+        .extend(startCoords)
+        .extend(endCoords);
+
+      map.current.fitBounds(bounds, {
+        padding: 80,
+        maxZoom: 15
+      });
+
+    } catch (error) {
+      console.error("Error setting up waypoints:", error);
+      setError("Failed to display route on map");
+    }
+  };
+
   // Update the map when the start/destination/route changes
   useEffect(() => {
     if (!mapContainer.current) return;
@@ -111,6 +225,14 @@ const Map = ({ start, destination, selectedRoute, vehicleType, goodsType, weight
       });
     }
     
+    // If using waypoints, handle that logic in a different function
+    if (waypoints && waypoints.length >= 2) {
+      if (mapLoaded) {
+        initMapWithWaypoints();
+      }
+      return;
+    }
+    
     // Add markers and route once map is loaded
     if (mapLoaded && map.current && start && destination && selectedRoute) {
       const loadRouteAndMarkers = async () => {
@@ -121,14 +243,23 @@ const Map = ({ start, destination, selectedRoute, vehicleType, goodsType, weight
           if (existingStartMarker) existingStartMarker.remove();
           if (existingEndMarker) existingEndMarker.remove();
 
-          if (map.current?.getSource('route')) {
-            map.current?.removeLayer('route-layer');
-            map.current?.removeSource('route');
-          }
-          
-          if (map.current?.getSource('tolls')) {
-            map.current?.removeLayer('tolls-layer');
-            map.current?.removeSource('tolls');
+          // Make sure to properly remove the route source and layer if they exist
+          try {
+            if (map.current?.getLayer('route-layer')) {
+              map.current.removeLayer('route-layer');
+            }
+            if (map.current?.getSource('route')) {
+              map.current.removeSource('route');
+            }
+            
+            if (map.current?.getLayer('tolls-layer')) {
+              map.current.removeLayer('tolls-layer');
+            }
+            if (map.current?.getSource('tolls')) {
+              map.current.removeSource('tolls');
+            }
+          } catch (e) {
+            console.log('Error removing existing map layers:', e);
           }
 
           // Get coordinates for both addresses
@@ -167,29 +298,38 @@ const Map = ({ start, destination, selectedRoute, vehicleType, goodsType, weight
           const routeGeometry = routes[0].geometry;
           
           // Add the route to the map
-          map.current?.addSource('route', {
-            type: 'geojson',
-            data: {
-              type: 'Feature',
-              properties: {},
-              geometry: routeGeometry
+          try {
+            // Check again if source already exists before adding
+            if (!map.current?.getSource('route')) {
+              map.current?.addSource('route', {
+                type: 'geojson',
+                data: {
+                  type: 'Feature',
+                  properties: {},
+                  geometry: routeGeometry
+                }
+              });
             }
-          });
-          
-          map.current?.addLayer({
-            id: 'route-layer',
-            type: 'line',
-            source: 'route',
-            layout: {
-              'line-join': 'round',
-              'line-cap': 'round'
-            },
-            paint: {
-              'line-color': selectedRoute.isRecommended ? '#10b981' : '#0e8fe0',
-              'line-width': 6,
-              'line-opacity': 0.8
+            
+            if (!map.current?.getLayer('route-layer')) {
+              map.current?.addLayer({
+                id: 'route-layer',
+                type: 'line',
+                source: 'route',
+                layout: {
+                  'line-join': 'round',
+                  'line-cap': 'round'
+                },
+                paint: {
+                  'line-color': selectedRoute.isRecommended ? '#10b981' : '#0e8fe0',
+                  'line-width': 6,
+                  'line-opacity': 0.8
+                }
+              });
             }
-          });
+          } catch (e) {
+            console.error('Error adding route source/layer:', e);
+          }
           
           // Add toll points if the route has tolls
           if (selectedRoute.tolls && selectedRoute.tolls.length > 0) {
@@ -215,7 +355,7 @@ const Map = ({ start, destination, selectedRoute, vehicleType, goodsType, weight
               type: 'geojson',
               data: {
                 type: 'FeatureCollection',
-                features: tollPoints
+                features: tollPoints as any
               }
             });
             
@@ -253,117 +393,50 @@ const Map = ({ start, destination, selectedRoute, vehicleType, goodsType, weight
               if (map.current) map.current.getCanvas().style.cursor = '';
             });
           }
-
-          // Fit the map to show both markers
+          
+          // Fit the map to the route bounds with padding
           const bounds = new mapboxgl.LngLatBounds()
             .extend(startCoords)
             .extend(endCoords);
-          
-          map.current?.fitBounds(bounds, {
+        
+          map.current.fitBounds(bounds, {
             padding: 80,
-            maxZoom: 15,
-            duration: 1000
+            maxZoom: 15
           });
-          
+        } catch (error) {
+          console.error("Error loading route:", error);
+          setError('Failed to load route information. Please try again later.');
           toast({
-            title: "Route loaded",
-            description: `${start} to ${destination} - ${selectedRoute.distance}km`,
-            duration: 3000,
+            title: "Map Error",
+            description: "There was a problem loading the route.",
+            variant: "destructive"
           });
-          
-        } catch (err) {
-          console.error("Error setting up route:", err);
-          toast({
-            title: "Error loading route",
-            description: err.message || "Failed to display the route. Please try again.",
-            variant: "destructive",
-            duration: 5000,
-          });
-          setError(err.message || "Failed to display the route");
         }
       };
       
       loadRouteAndMarkers();
     }
-    
-    // Cleanup
-    return () => {
-      if (map.current) {
-        // map.current.remove();
-      }
-    };
-  }, [start, destination, selectedRoute, mapLoaded, mapboxToken, vehicleType, goodsType, weight, toast]);
+  }, [start, destination, selectedRoute, mapLoaded, mapboxToken, toast, waypoints]);
 
-  // Custom token input for testing
-  const handleTokenUpdate = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const token = formData.get('mapbox-token') as string;
-    
-    if (token && token !== mapboxToken) {
-      setMapboxToken(token);
-      // Force re-initialization of map with new token
-      if (map.current) {
-        map.current.remove();
-        map.current = null;
-        setMapLoaded(false);
-        setError(null);
-        toast({
-          title: "Mapbox token updated",
-          description: "The map will reload with the new access token.",
-          duration: 3000,
-        });
-      }
+  useEffect(() => {
+    // When the waypoints change, try to initialize the map with waypoints
+    if (waypoints && waypoints.length >= 2 && mapLoaded && map.current) {
+      initMapWithWaypoints();
     }
-  };
-
+  }, [waypoints, mapLoaded]);
+  
   return (
-    <div className="flex flex-col w-full h-full rounded-md overflow-hidden">
-      {/* Token input section for testing */}
-      {!MAPBOX_ACCESS_TOKEN && (
-        <form onSubmit={handleTokenUpdate} className="p-2 bg-gray-100 dark:bg-gray-800 border-b">
-          <div className="flex gap-2">
-            <input 
-              type="text" 
-              name="mapbox-token" 
-              placeholder="Enter Mapbox access token" 
-              className="flex-1 px-2 py-1 text-sm rounded border" 
-              defaultValue={mapboxToken}
-            />
-            <button type="submit" className="px-2 py-1 text-sm bg-blue-500 text-white rounded">Update</button>
-          </div>
-          <p className="text-xs text-gray-500 mt-1">Get a token at mapbox.com</p>
-        </form>
-      )}
-      
-      <div className="relative w-full h-[calc(100%-2rem)] min-h-[400px]">
-        {/* Map container */}
-        <div 
-          ref={mapContainer} 
-          className="w-full h-full rounded-md"
-        />
-        
-        {/* Loading indicator */}
-        {(!mapLoaded || loadingRoute) && (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-100/70 dark:bg-gray-800/70">
-            <div className="flex flex-col items-center">
-              <div className="h-10 w-10 border-4 border-logistics-600 border-t-transparent rounded-full animate-spin"></div>
-              <p className="mt-2 text-logistics-600 dark:text-logistics-400">
-                {!mapLoaded ? 'Loading map...' : 'Finding optimal route...'}
-              </p>
-            </div>
+    <div style={{ width: '100%', height: '100%', ...style }}>
+      <div ref={mapContainer} style={{ width: '100%', height: '100%' }}>
+        {error && (
+          <div className="flex items-center justify-center h-full bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-200">
+            <p>{error}</p>
           </div>
         )}
-        
-        {/* Error message */}
-        {error && (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-100/80 dark:bg-gray-800/80">
-            <div className="bg-white dark:bg-gray-900 p-4 rounded-lg shadow-lg max-w-md mx-4">
-              <h3 className="text-red-600 font-medium mb-2">Error</h3>
-              <p className="text-gray-700 dark:text-gray-300">{error}</p>
-              <p className="text-sm text-gray-500 mt-2">
-                Make sure you have a valid Mapbox token or check your internet connection.
-              </p>
+        {loadingRoute && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/20 z-10">
+            <div className="bg-white dark:bg-gray-800 rounded-md shadow-md px-4 py-2">
+              <p>Loading route...</p>
             </div>
           </div>
         )}

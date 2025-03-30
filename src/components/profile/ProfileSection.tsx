@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -11,62 +10,110 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, Camera } from 'lucide-react';
+import { Loader2, Camera, Building, User, Phone, Mail } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Separator } from '@/components/ui/separator';
+import { useUserData } from '@/hooks/useUserData';
 
-// Define the form schema
-const profileFormSchema = z.object({
-  name: z.string().min(2, { message: 'Name must be at least 2 characters' }),
+// Define the user form schema
+const userFormSchema = z.object({
+  first_name: z.string().min(2, { message: 'First name must be at least 2 characters' }),
+  last_name: z.string().min(2, { message: 'Last name must be at least 2 characters' }),
   phone: z.string().min(10, { message: 'Please enter a valid phone number' }),
-  vehicle_reg: z.string().optional(),
+  role: z.string().optional(),
 });
 
-type ProfileFormValues = z.infer<typeof profileFormSchema>;
+// Define the organization form schema
+const organizationFormSchema = z.object({
+  name: z.string().min(2, { message: 'Organization name must be at least 2 characters' }),
+  address: z.string().min(5, { message: 'Address is required' }),
+  city: z.string().min(2, { message: 'City is required' }),
+  state: z.string().min(2, { message: 'State is required' }),
+  contact_email: z.string().email({ message: 'Please enter a valid email' }),
+  contact_phone: z.string().min(10, { message: 'Please enter a valid phone number' }),
+});
+
+type UserFormValues = z.infer<typeof userFormSchema>;
+type OrganizationFormValues = z.infer<typeof organizationFormSchema>;
 
 const ProfileSection = () => {
   const [loading, setLoading] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const { user } = useAuth();
+  const { profile, refetchProfile } = useUserData();
   const { toast } = useToast();
+  const [organization, setOrganization] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState('personal');
 
-  // Initialize the form with react-hook-form
-  const form = useForm<ProfileFormValues>({
-    resolver: zodResolver(profileFormSchema),
+  // Initialize the user form
+  const userForm = useForm<UserFormValues>({
+    resolver: zodResolver(userFormSchema),
     defaultValues: {
-      name: '',
+      first_name: '',
+      last_name: '',
       phone: '',
-      vehicle_reg: 'TN 07 CG 1234',
+      role: '',
     },
   });
 
-  // Fetch user profile data
+  // Initialize the organization form
+  const organizationForm = useForm<OrganizationFormValues>({
+    resolver: zodResolver(organizationFormSchema),
+    defaultValues: {
+      name: '',
+      address: '',
+      city: '',
+      state: '',
+      contact_email: '',
+      contact_phone: '',
+    },
+  });
+
+  // Fetch user profile and organization data
   useEffect(() => {
-    const fetchProfile = async () => {
+    const fetchProfileData = async () => {
       if (!user) return;
       
       setLoading(true);
       try {
-        // Get user profile
-        const { data, error } = await supabase
-          .from('user_profiles')
-          .select('*')
-          .eq('id', user.id)
-          .maybeSingle();
-
-        if (error) throw error;
-
-        if (data) {
-          form.reset({
-            name: data.name || '',
-            phone: data.phone || '',
-            vehicle_reg: 'TN 07 CG 1234', // Default value if not in database
+        // Set values from profile data
+        if (profile) {
+          userForm.reset({
+            first_name: profile.first_name || '',
+            last_name: profile.last_name || '',
+            phone: profile.phone || '',
+            role: profile.role || '',
           });
+
+          // If there's an organization_id, fetch organization details
+          if (profile.organization_id) {
+            const { data: orgData, error: orgError } = await supabase
+              .from('organizations')
+              .select('*')
+              .eq('id', profile.organization_id)
+              .single();
+
+            if (orgError) {
+              console.error('Error fetching organization:', orgError);
+            } else if (orgData) {
+              setOrganization(orgData);
+              organizationForm.reset({
+                name: orgData.name || '',
+                address: orgData.address || '',
+                city: orgData.city || '',
+                state: orgData.state || '',
+                contact_email: orgData.contact_email || '',
+                contact_phone: orgData.contact_phone || '',
+              });
+            }
+          }
         }
 
         // Get avatar image
         await fetchAvatar();
       } catch (error: any) {
-        console.error('Error fetching profile:', error);
+        console.error('Error fetching profile data:', error);
         toast({
           title: 'Error',
           description: error.message || 'Failed to load profile data',
@@ -77,8 +124,8 @@ const ProfileSection = () => {
       }
     };
 
-    fetchProfile();
-  }, [user]);
+    fetchProfileData();
+  }, [user, profile]);
 
   // Fetch user avatar
   const fetchAvatar = async () => {
@@ -169,24 +216,28 @@ const ProfileSection = () => {
     }
   };
 
-  // Handle form submission
-  const onSubmit = async (values: ProfileFormValues) => {
+  // Handle user form submission
+  const onSubmitUserForm = async (values: UserFormValues) => {
     if (!user) return;
     setLoading(true);
 
     try {
-      // Update or insert user profile
+      // Update user profile
       const { error } = await supabase
         .from('user_profiles')
         .upsert({
           id: user.id,
-          name: values.name,
+          first_name: values.first_name,
+          last_name: values.last_name,
           phone: values.phone,
+          role: values.role,
           updated_at: new Date().toISOString(),
         });
 
       if (error) throw error;
 
+      await refetchProfile();
+      
       toast({
         title: 'Success',
         description: 'Profile updated successfully',
@@ -202,31 +253,86 @@ const ProfileSection = () => {
     }
   };
 
+  // Handle organization form submission
+  const onSubmitOrgForm = async (values: OrganizationFormValues) => {
+    if (!user || !profile?.organization_id) return;
+    setLoading(true);
+
+    try {
+      // Update organization
+      const { error } = await supabase
+        .from('organizations')
+        .update({
+          name: values.name,
+          address: values.address,
+          city: values.city,
+          state: values.state,
+          contact_email: values.contact_email,
+          contact_phone: values.contact_phone,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', profile.organization_id);
+
+      if (error) throw error;
+      
+      // Fetch updated organization data
+      const { data: orgData } = await supabase
+        .from('organizations')
+        .select('*')
+        .eq('id', profile.organization_id)
+        .single();
+        
+      setOrganization(orgData);
+      
+      toast({
+        title: 'Success',
+        description: 'Organization details updated successfully',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to update organization details',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Get user initials for avatar fallback
   const getUserInitials = () => {
-    const name = form.watch('name');
-    if (name) {
-      return name.split(' ').map(n => n[0]).join('').toUpperCase();
+    const firstName = userForm.watch('first_name');
+    const lastName = userForm.watch('last_name');
+    
+    if (firstName && lastName) {
+      return (firstName[0] + lastName[0]).toUpperCase();
+    } else if (firstName) {
+      return firstName[0].toUpperCase();
     }
+    
     if (user && user.email) {
       return user.email.charAt(0).toUpperCase();
     }
+    
     return 'U';
   };
 
+  // Determine if organization details are available
+  const hasOrgDetails = !!profile?.organization_id && !!organization;
+
   return (
-    <Card className="w-full dark:bg-gray-800 dark:border-gray-700">
+    <Card>
       <CardHeader>
-        <CardTitle className="text-xl dark:text-white">Profile Information</CardTitle>
-        <CardDescription className="dark:text-gray-400">
-          Update your personal and vehicle details
+        <CardTitle>Profile Information</CardTitle>
+        <CardDescription>
+          Manage your personal details and organization information
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="flex flex-col md:flex-row gap-6">
+        <div className="mb-6 flex flex-col md:flex-row gap-6 items-center md:items-start">
           <div className="flex flex-col items-center space-y-4">
             <div className="relative">
-              <Avatar className="h-24 w-24 border-2 border-gray-200 dark:border-gray-700">
+              <Avatar className="h-24 w-24 border-2 border-gray-200">
                 <AvatarImage src={avatarUrl || undefined} alt="Profile" />
                 <AvatarFallback className="text-xl">{getUserInitials()}</AvatarFallback>
               </Avatar>
@@ -237,7 +343,7 @@ const ProfileSection = () => {
                 </div>
               )}
               
-              <label htmlFor="avatar-upload" className="absolute -bottom-2 -right-2 h-8 w-8 rounded-full bg-logistics-600 hover:bg-logistics-700 flex items-center justify-center cursor-pointer text-white">
+              <label htmlFor="avatar-upload" className="absolute -bottom-2 -right-2 h-8 w-8 rounded-full bg-primary hover:bg-primary/90 flex items-center justify-center cursor-pointer text-white">
                 <Camera className="h-4 w-4" />
                 <input 
                   id="avatar-upload" 
@@ -249,102 +355,257 @@ const ProfileSection = () => {
                 />
               </label>
             </div>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Click the camera icon to upload a profile picture
+            <p className="text-sm text-center">
+              {user?.email}
             </p>
           </div>
           
           <div className="flex-1">
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="dark:text-gray-300">Full Name</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Enter your full name"
-                          className="dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage className="dark:text-red-400" />
-                    </FormItem>
-                  )}
-                />
-                
-                {user && (
-                  <FormItem>
-                    <FormLabel className="dark:text-gray-300">Email Address</FormLabel>
-                    <FormControl>
-                      <Input
-                        value={user.email || ''}
-                        disabled
-                        className="dark:bg-gray-700 dark:border-gray-600 dark:text-white opacity-70"
-                      />
-                    </FormControl>
-                    <FormDescription className="dark:text-gray-500">
-                      Your email address cannot be changed
-                    </FormDescription>
-                  </FormItem>
-                )}
-                
-                <FormField
-                  control={form.control}
-                  name="phone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="dark:text-gray-300">Phone Number</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Enter your phone number"
-                          className="dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage className="dark:text-red-400" />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="vehicle_reg"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="dark:text-gray-300">Vehicle Registration</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Enter your vehicle registration"
-                          className="dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage className="dark:text-red-400" />
-                    </FormItem>
-                  )}
-                />
-                
-                <Button 
-                  type="submit" 
-                  className="mt-4 dark:bg-logistics-600 dark:hover:bg-logistics-700"
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    'Save Changes'
-                  )}
-                </Button>
-              </form>
-            </Form>
+            <div className="space-y-1 mb-4">
+              <h3 className="text-lg font-semibold">{userForm.watch('first_name')} {userForm.watch('last_name')}</h3>
+              <p className="text-muted-foreground">{userForm.watch('role') || 'Role not set'}</p>
+              
+              {organization && (
+                <div className="flex items-center gap-1 text-muted-foreground">
+                  <Building className="h-4 w-4" />
+                  <span>{organization.name}</span>
+                </div>
+              )}
+            </div>
+            
+            <div className="flex flex-wrap gap-2">
+              {profile && profile.phone && (
+                <div className="inline-flex items-center px-3 py-1 rounded-full bg-gray-100 text-sm">
+                  <Phone className="h-3 w-3 mr-1" />
+                  {profile.phone}
+                </div>
+              )}
+              
+              {user && user.email && (
+                <div className="inline-flex items-center px-3 py-1 rounded-full bg-gray-100 text-sm">
+                  <Mail className="h-3 w-3 mr-1" />
+                  {user.email}
+                </div>
+              )}
+            </div>
           </div>
         </div>
+        
+        <Separator className="my-6" />
+        
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="mb-6">
+            <TabsTrigger value="personal" className="flex items-center gap-1">
+              <User className="h-4 w-4" />
+              <span>Personal Info</span>
+            </TabsTrigger>
+            <TabsTrigger value="organization" disabled={!hasOrgDetails} className="flex items-center gap-1">
+              <Building className="h-4 w-4" />
+              <span>Organization</span>
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="personal">
+            <Form {...userForm}>
+              <form onSubmit={userForm.handleSubmit(onSubmitUserForm)} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={userForm.control}
+                    name="first_name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>First Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter your first name" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={userForm.control}
+                    name="last_name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Last Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter your last name" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={userForm.control}
+                    name="phone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Phone Number</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter your phone number" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={userForm.control}
+                    name="role"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Role</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Your role in the organization" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="flex justify-end">
+                  <Button type="submit" disabled={loading}>
+                    {loading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      'Save Changes'
+                    )}
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          </TabsContent>
+          
+          <TabsContent value="organization">
+            {hasOrgDetails ? (
+              <Form {...organizationForm}>
+                <form onSubmit={organizationForm.handleSubmit(onSubmitOrgForm)} className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      control={organizationForm.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Organization Name</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Enter organization name" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={organizationForm.control}
+                      name="contact_email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Contact Email</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Organization email" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-4">
+                    <FormField
+                      control={organizationForm.control}
+                      name="address"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Address</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Enter organization address" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <FormField
+                      control={organizationForm.control}
+                      name="city"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>City</FormLabel>
+                          <FormControl>
+                            <Input placeholder="City" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={organizationForm.control}
+                      name="state"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>State</FormLabel>
+                          <FormControl>
+                            <Input placeholder="State" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={organizationForm.control}
+                      name="contact_phone"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Contact Phone</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Organization phone" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="flex justify-end">
+                    <Button type="submit" disabled={loading}>
+                      {loading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        'Update Organization'
+                      )}
+                    </Button>
+                  </div>
+                </form>
+              </Form>
+            ) : (
+              <div className="text-center py-8">
+                <Building className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <h3 className="text-lg font-medium mb-2">No Organization Found</h3>
+                <p className="text-muted-foreground mb-4">
+                  You are not connected to any organization. Please register an organization first.
+                </p>
+                <Button asChild>
+                  <a href="/register">Create Organization</a>
+                </Button>
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </CardContent>
     </Card>
   );
