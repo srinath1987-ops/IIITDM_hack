@@ -3,8 +3,7 @@
 
 Last Mile is an intelligent route optimization platform designed specifically for logistics and freight transportation in India. The application provides real-time route planning and optimization for cargo transport, helping companies save time, fuel, and money.
 
-## Live Link
-
+## DEMO VIDEO OF PROTOTYPE : https://drive.google.com/file/d/1tb42MZdLGpUthAohpzlwSH1Un5_q5T4h/view?usp=sharing
 
 ## Table of Contents
 - [Features](#features)
