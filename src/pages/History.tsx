@@ -307,7 +307,7 @@ const History = () => {
   
   return (
     <MainLayout>
-      <div className="container mx-auto py-6 px-4 relative top-[30px]">
+      <div className="container mx-auto py-6 px-4 relative top-[10px]">
         <div className="mb-6">
           <h1 className="text-3xl font-bold dark:text-white">Travel History</h1>
           <p className="text-muted-foreground dark:text-gray-400">
@@ -646,13 +646,6 @@ const History = () => {
                       </div>
                     </CardContent>
                   </Card>
-                </div>
-                
-                <div className="flex justify-end space-x-2 mt-4">
-                  <Button variant="outline" className="flex items-center">
-                    <Download className="h-4 w-4 mr-2" />
-                    Export Report
-                  </Button>
                 </div>
               </>
             ) : (

@@ -84,7 +84,7 @@ const MainLayout = ({ children }: MainLayoutProps) => {
             )}
           </>
         )}
-        <main className={`flex-1 p-4 md:p-6 pt-20 transition-all duration-300 ${
+        <main className={`flex-1 p-4 md:p-6 pt-20 transition-all duration-300 relative top-[20px] ${
           !isAuthPage && !isSmallScreen ? (sidebarOpen ? 'ml-56' : 'ml-16') : 'ml-0'
         }`}>
           {children}

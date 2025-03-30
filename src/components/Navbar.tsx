@@ -49,7 +49,7 @@ const Navbar = ({ toggleMobileSidebar }: NavbarProps) => {
   return (
     <nav className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-2.5 fixed w-full z-50">
       <div className="flex justify-between items-center mx-auto">
-        <Link to="/dashboard" className="flex items-center space-x-3">
+        <Link to="/" className="flex items-center space-x-3">
           <Truck className="h-8 w-8 text-logistics-600" />
           <span className="self-center text-xl font-semibold whitespace-nowrap dark:text-white">
             Last Mile

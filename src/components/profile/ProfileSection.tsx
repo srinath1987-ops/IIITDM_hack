@@ -375,14 +375,14 @@ const ProfileSection = () => {
             
             <div className="flex flex-wrap gap-2">
               {profile && profile.phone && (
-                <div className="inline-flex items-center px-3 py-1 rounded-full bg-gray-100 text-sm">
+                <div className="inline-flex items-center px-3 py-1 rounded-full bg-gray-100 text-sm text-black">
                   <Phone className="h-3 w-3 mr-1" />
                   {profile.phone}
                 </div>
               )}
               
               {user && user.email && (
-                <div className="inline-flex items-center px-3 py-1 rounded-full bg-gray-100 text-sm">
+                <div className="inline-flex items-center px-3 py-1 rounded-full bg-gray-100 text-sm text-black">
                   <Mail className="h-3 w-3 mr-1" />
                   {user.email}
                 </div>

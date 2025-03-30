@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
@@ -7,7 +6,10 @@ import {
   History, 
   Settings, 
   LogOut,
-  User
+  User,
+  Map,
+  Route,
+  DollarSign
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
@@ -50,8 +52,23 @@ const Sidebar = ({ isOpen, isIconOnly = false }: SidebarProps) => {
     },
     { 
       name: 'Plan Route', 
-      path: '/ride', 
+      path: '/create-route', 
       icon: <MapPin className="h-5 w-5" /> 
+    },
+    { 
+      name: 'Locations', 
+      path: '/locations', 
+      icon: <Map className="h-5 w-5" /> 
+    },
+    { 
+      name: 'Routes', 
+      path: '/routes', 
+      icon: <Route className="h-5 w-5" /> 
+    },
+    { 
+      name: 'Pricing', 
+      path: '/pricing', 
+      icon: <DollarSign className="h-5 w-5" /> 
     },
     { 
       name: 'Travel History', 
@@ -62,7 +79,7 @@ const Sidebar = ({ isOpen, isIconOnly = false }: SidebarProps) => {
       name: 'Settings', 
       path: '/settings', 
       icon: <Settings className="h-5 w-5" /> 
-    }
+    },
   ];
 
   // Get user initials for avatar

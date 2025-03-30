@@ -63,7 +63,7 @@ const AboutPage = () => {
             </div>
             <div>
               <h2 className="text-3xl font-bold mb-6">Our Story</h2>
-              <div className="space-y-4 text-gray-600">
+              <div className="space-y-4 text-black">
                 <p>
                   Founded in 2020, Last Mile was born from a simple observation: India's logistics sector was struggling with inefficient routing that cost companies millions in wasted fuel and time.
                 </p>
