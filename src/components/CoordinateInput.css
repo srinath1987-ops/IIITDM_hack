@@ -1,0 +1,108 @@
+.coordinate-input {
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.coordinate-input h3 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  color: #333;
+  font-size: 1.2rem;
+}
+
+.coordinate-input h4 {
+  margin: 0.5rem 0;
+  color: #555;
+  font-size: 1rem;
+}
+
+.preset-routes {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #ddd;
+}
+
+.preset-routes label {
+  margin-right: 0.5rem;
+  font-weight: bold;
+  color: #444;
+}
+
+.preset-routes select {
+  flex: 1;
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  margin-right: 0.5rem;
+  background-color: white;
+}
+
+.quick-submit-btn {
+  padding: 0.5rem 1rem;
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.quick-submit-btn:hover {
+  background-color: #45a049;
+}
+
+.input-group {
+  margin-bottom: 1rem;
+}
+
+.coordinate-pair {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.input-field {
+  flex: 1;
+}
+
+.input-field label {
+  display: block;
+  margin-bottom: 0.3rem;
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.input-field input {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.submit-btn {
+  display: block;
+  width: 100%;
+  padding: 0.75rem;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+  margin-top: 1rem;
+}
+
+.submit-btn:hover {
+  background-color: #0069d9;
+}
+
+.error-message {
+  color: #d9534f;
+  margin: 0.5rem 0;
+  font-size: 0.85rem;
+} 

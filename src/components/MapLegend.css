@@ -1,0 +1,67 @@
+.map-legend {
+  background-color: white;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-top: 1rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  font-size: 0.9rem;
+}
+
+.map-legend h3 {
+  margin-top: 0;
+  margin-bottom: 0.75rem;
+  font-size: 1.1rem;
+  color: #333;
+}
+
+.map-legend h4 {
+  margin: 0.75rem 0 0.5rem;
+  font-size: 0.95rem;
+  color: #555;
+}
+
+.legend-section {
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #eee;
+}
+
+.legend-section:last-child {
+  border-bottom: none;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.4rem;
+}
+
+.legend-color {
+  width: 20px;
+  height: 6px;
+  margin-right: 10px;
+  border-radius: 2px;
+}
+
+.legend-icon {
+  font-size: 1.1rem;
+  margin-right: 10px;
+  width: 20px;
+  text-align: center;
+}
+
+.legend-item span {
+  color: #666;
+  font-size: 0.85rem;
+}
+
+.legend-note {
+  font-size: 0.8rem;
+  color: #777;
+  font-style: italic;
+  margin-top: 0.5rem;
+}
+
+.legend-note p {
+  margin: 0;
+}
