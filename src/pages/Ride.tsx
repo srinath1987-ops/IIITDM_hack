@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import MainLayout from '@/components/MainLayout';
 import Map from '@/components/Map';
@@ -18,59 +18,213 @@ import {
   ThumbsUp,
   CloudRain,
   Sun,
-  Cloud
+  Cloud,
+  Loader2
 } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
 
-// Mock route options
-const routeOptions = [
-  {
-    id: 1,
-    name: 'Route 1 (Recommended)',
-    isRecommended: true,
-    distance: 325,
-    duration: 5.5,
-    tollCost: 750,
-    fuelCost: 2100,
-    tolls: [
-      { name: 'Chennai Bypass Toll Plaza', cost: 245 },
-      { name: 'Paranur Toll Plaza', cost: 205 },
-      { name: 'Vikravandi Toll Gate', cost: 300 }
-    ],
-    timeSaved: 2.1,
-    weather: 'Clear',
-  },
-  {
-    id: 2,
-    name: 'Route 2',
-    isRecommended: false,
-    distance: 342,
-    duration: 6.8,
-    tollCost: 620,
-    fuelCost: 2340,
-    tolls: [
-      { name: 'Chennai Peripheral Toll', cost: 220 },
-      { name: 'Tindivanam Toll Gate', cost: 400 }
-    ],
-    timeSaved: 0.8,
-    weather: 'Rain',
-  },
-  {
-    id: 3,
-    name: 'Route 3',
-    isRecommended: false,
-    distance: 358,
-    duration: 7.6,
-    tollCost: 540,
-    fuelCost: 2450,
-    tolls: [
-      { name: 'Chennai East Coast Toll', cost: 180 },
-      { name: 'Mamallapuram Toll Gate', cost: 160 },
-      { name: 'Pondicherry North Toll', cost: 200 }
-    ],
-    timeSaved: 0,
-    weather: 'Cloudy',
-  }
-];
+
+interface Toll {
+  name: string;
+  cost: number;
+}
+interface Route {
+  id: number;
+  name: string;
+  isRecommended: boolean;
+  distance: number;
+  duration: number;
+  tollCost: number;
+  fuelCost: number;
+  tolls: Toll[];
+  timeSaved: number;
+  weather: string;
+}
+
+// Mock route options based on route type
+const routeOptions: Record<string, Route[]> = {
+  default: [
+    {
+      id: 1,
+      name: 'Route 1 (Recommended)',
+      isRecommended: true,
+      distance: 325,
+      duration: 5.5,
+      tollCost: 750,
+      fuelCost: 2100,
+      tolls: [
+        { name: 'Chennai Bypass Toll Plaza', cost: 245 },
+        { name: 'Paranur Toll Plaza', cost: 205 },
+        { name: 'Vikravandi Toll Gate', cost: 300 }
+      ],
+      timeSaved: 2.1,
+      weather: 'Clear',
+    },
+    {
+      id: 2,
+      name: 'Route 2',
+      isRecommended: false,
+      distance: 342,
+      duration: 6.8,
+      tollCost: 620,
+      fuelCost: 2340,
+      tolls: [
+        { name: 'Chennai Peripheral Toll', cost: 220 },
+        { name: 'Tindivanam Toll Gate', cost: 400 }
+      ],
+      timeSaved: 0.8,
+      weather: 'Rain',
+    },
+    {
+      id: 3,
+      name: 'Route 3',
+      isRecommended: false,
+      distance: 358,
+      duration: 7.6,
+      tollCost: 540,
+      fuelCost: 2450,
+      tolls: [
+        { name: 'Chennai East Coast Toll', cost: 180 },
+        { name: 'Mamallapuram Toll Gate', cost: 160 },
+        { name: 'Pondicherry North Toll', cost: 200 }
+      ],
+      timeSaved: 0,
+      weather: 'Cloudy',
+    }
+  ],
+  'lorry': [
+    {
+      id: 1,
+      name: 'Route 1 (Recommended)',
+      isRecommended: true,
+      distance: 318,
+      duration: 5.2,
+      tollCost: 720,
+      fuelCost: 1900,
+      tolls: [
+        { name: 'Chennai Bypass Toll Plaza', cost: 220 },
+        { name: 'Paranur Toll Plaza', cost: 200 },
+        { name: 'Vikravandi Toll Gate', cost: 300 }
+      ],
+      timeSaved: 1.8,
+      weather: 'Clear',
+    },
+    {
+      id: 2,
+      name: 'Route 2',
+      isRecommended: false,
+      distance: 335,
+      duration: 6.2,
+      tollCost: 580,
+      fuelCost: 2100,
+      tolls: [
+        { name: 'Chennai Peripheral Toll', cost: 180 },
+        { name: 'Tindivanam Toll Gate', cost: 400 }
+      ],
+      timeSaved: 0.8,
+      weather: 'Cloudy',
+    },
+  ],
+  'truck': [
+    {
+      id: 1,
+      name: 'Route 1 (Recommended)',
+      isRecommended: true,
+      distance: 325,
+      duration: 5.5,
+      tollCost: 750,
+      fuelCost: 2100,
+      tolls: [
+        { name: 'Chennai Bypass Toll Plaza', cost: 245 },
+        { name: 'Paranur Toll Plaza', cost: 205 },
+        { name: 'Vikravandi Toll Gate', cost: 300 }
+      ],
+      timeSaved: 2.1,
+      weather: 'Clear',
+    },
+    {
+      id: 2,
+      name: 'Route 2',
+      isRecommended: false,
+      distance: 342,
+      duration: 6.8,
+      tollCost: 620,
+      fuelCost: 2340,
+      tolls: [
+        { name: 'Chennai Peripheral Toll', cost: 220 },
+        { name: 'Tindivanam Toll Gate', cost: 400 }
+      ],
+      timeSaved: 0.8,
+      weather: 'Rain',
+    },
+  ],
+  '10wheeler': [
+    {
+      id: 1,
+      name: 'Route 1 (Recommended)',
+      isRecommended: true,
+      distance: 358,
+      duration: 6.2,
+      tollCost: 980,
+      fuelCost: 2800,
+      tolls: [
+        { name: 'Chennai Eastern Ring Road', cost: 300 },
+        { name: 'Chengalpattu Plaza', cost: 280 },
+        { name: 'Trichy Highway Toll', cost: 400 }
+      ],
+      timeSaved: 1.5,
+      weather: 'Clear',
+    },
+    {
+      id: 2,
+      name: 'Route 2',
+      isRecommended: false,
+      distance: 372,
+      duration: 7.1,
+      tollCost: 850,
+      fuelCost: 3000,
+      tolls: [
+        { name: 'Chennai Bypass Toll Plaza', cost: 350 },
+        { name: 'Ulundurpet Toll Gate', cost: 500 }
+      ],
+      timeSaved: 0.6,
+      weather: 'Cloudy',
+    },
+  ],
+  '14wheeler': [
+    {
+      id: 1,
+      name: 'Route 1 (Recommended)',
+      isRecommended: true,
+      distance: 382,
+      duration: 7.5,
+      tollCost: 1200,
+      fuelCost: 3500,
+      tolls: [
+        { name: 'Chennai Heavy Vehicle Corridor', cost: 400 },
+        { name: 'Kanchipuram Truck Plaza', cost: 350 },
+        { name: 'Madurai North Gate', cost: 450 }
+      ],
+      timeSaved: 2.3,
+      weather: 'Clear',
+    },
+    {
+      id: 2,
+      name: 'Route 2',
+      isRecommended: false,
+      distance: 410,
+      duration: 9.2,
+      tollCost: 980,
+      fuelCost: 3800,
+      tolls: [
+        { name: 'Chennai Outer Ring Road', cost: 380 },
+        { name: 'Salem Heavy Vehicle Plaza', cost: 600 }
+      ],
+      timeSaved: 0.5,
+      weather: 'Rain',
+    },
+  ],
+};
 
 const vehicleTypes = [
   { value: 'lorry', label: 'Lorry (< 3.5 Tons)' },
@@ -86,30 +240,52 @@ const goodsTypes = [
   { value: 'others', label: 'Others' }
 ];
 
+// Popular routes
+const popularRoutes = [
+  { from: 'Chennai, Tamil Nadu', to: 'Madurai, Tamil Nadu' },
+  { from: 'Mumbai, Maharashtra', to: 'Pune, Maharashtra' },
+  { from: 'Delhi, NCR', to: 'Jaipur, Rajasthan' },
+  { from: 'Bangalore, Karnataka', to: 'Hyderabad, Telangana' },
+];
+
 const Ride = () => {
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   const [startLocation, setStartLocation] = useState('Chennai, Tamil Nadu');
   const [destination, setDestination] = useState('Madurai, Tamil Nadu');
   const [vehicleType, setVehicleType] = useState('truck');
   const [goodsType, setGoodsType] = useState('construction');
   const [weight, setWeight] = useState('15');
   const [additionalInfo, setAdditionalInfo] = useState('');
-  const [selectedRoute, setSelectedRoute] = useState(routeOptions[0]);
+  const [routes, setRoutes] = useState<Route[]>(routeOptions.default);
+  const [selectedRoute, setSelectedRoute] = useState<Route>(routeOptions.default[0]);
   const [showRoutes, setShowRoutes] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   const handleFindRoutes = () => {
+    setLoading(true);
     toast({
       title: "Finding optimal routes",
       description: "Analyzing traffic, tolls, and weather conditions...",
-      duration: 2000,
     });
     
-    // In a real app, this would fetch routes from the API
-    // For now, we'll just use our mock data and show it
-    setShowRoutes(true);
+    // Simulate API call with setTimeout
+    setTimeout(() => {
+      // Get routes based on vehicle type
+      const vehicleRoutes = routeOptions[vehicleType as keyof typeof routeOptions] || routeOptions.default;
+      setRoutes(vehicleRoutes);
+      setSelectedRoute(vehicleRoutes[0]);
+      setShowRoutes(true);
+      setLoading(false);
+      
+      toast({
+        title: "Routes found",
+        description: `Found ${vehicleRoutes.length} routes for your journey`,
+      });
+    }, 1500);
   };
 
-  const handleSelectRoute = (route) => {
+  const handleSelectRoute = (route: Route) => {
     setSelectedRoute(route);
     
     toast({
@@ -119,7 +295,18 @@ const Ride = () => {
     });
   };
 
-  const getWeatherIcon = (weather) => {
+  const handleSelectPopularRoute = (from: string, to: string) => {
+    setStartLocation(from);
+    setDestination(to);
+    
+    toast({
+      title: "Popular route selected",
+      description: `${from} to ${to}`,
+      duration: 2000,
+    });
+  };
+
+  const getWeatherIcon = (weather: string) => {
     switch(weather) {
       case 'Clear':
         return <Sun className="h-5 w-5 text-amber-500" />;
@@ -165,6 +352,21 @@ const Ride = () => {
                     value={destination}
                     onChange={(e) => setDestination(e.target.value)}
                   />
+                </div>
+
+                <div className="space-y-1">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Popular routes:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {popularRoutes.map((route, index) => (
+                      <button
+                        key={index}
+                        onClick={() => handleSelectPopularRoute(route.from, route.to)}
+                        className="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full text-gray-700 dark:text-gray-300"
+                      >
+                        {route.from.split(',')[0]} → {route.to.split(',')[0]}
+                      </button>
+                    ))}
+                  </div>
                 </div>
                 
                 <div className="space-y-2">
@@ -229,31 +431,39 @@ const Ride = () => {
                 <Button 
                   className="w-full" 
                   onClick={handleFindRoutes}
+                  disabled={loading}
                 >
-                  Find Optimal Routes
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Finding Routes...
+                    </>
+                  ) : (
+                    'Find Optimal Routes'
+                  )}
                 </Button>
               </CardContent>
             </Card>
             
             {showRoutes && (
-              <Card>
+              <Card className={isMobile ? "" : "sticky top-20"}>
                 <CardHeader>
                   <CardTitle className="text-lg">Route Options</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {routeOptions.map((route) => (
+                  {routes.map((route) => (
                     <div 
                       key={route.id}
                       onClick={() => handleSelectRoute(route)}
-                      className={`route-card cursor-pointer ${
-                        selectedRoute.id === route.id ? 'ring-2 ring-primary' : ''
-                      } ${route.isRecommended ? 'recommended' : ''}`}
+                      className={`route-card cursor-pointer p-3 border rounded-lg transition-all duration-200 hover:bg-gray-50 dark:hover:bg-gray-800 ${
+                        selectedRoute.id === route.id ? 'ring-2 ring-primary border-transparent' : ''
+                      } ${route.isRecommended ? 'bg-logistics-50 dark:bg-logistics-900/20' : ''}`}
                     >
                       <div className="flex justify-between items-start mb-2">
                         <div className="font-medium flex items-center">
                           {route.name}
                           {route.isRecommended && (
-                            <span className="ml-2 inline-flex items-center rounded-full bg-cargo-100 px-2 py-0.5 text-xs font-medium text-cargo-800">
+                            <span className="ml-2 inline-flex items-center rounded-full bg-logistics-100 dark:bg-logistics-900/50 px-2 py-0.5 text-xs font-medium text-logistics-800 dark:text-logistics-300">
                               <ThumbsUp className="h-3 w-3 mr-1" />
                               Best
                             </span>
@@ -282,7 +492,7 @@ const Ride = () => {
                       </div>
                       
                       {route.timeSaved > 0 && (
-                        <div className="mt-2 text-xs font-medium text-cargo-700">
+                        <div className="mt-2 text-xs font-medium text-logistics-700 dark:text-logistics-400">
                           Save {route.timeSaved} hours compared to longest route
                         </div>
                       )}
@@ -300,7 +510,7 @@ const Ride = () => {
                   <CardTitle className="text-lg">Route Map</CardTitle>
                   {selectedRoute && (
                     <div className="text-sm font-medium">
-                      {startLocation} → {destination} ({selectedRoute.distance} km)
+                      {startLocation.split(',')[0]} → {destination.split(',')[0]} ({selectedRoute.distance} km)
                     </div>
                   )}
                 </div>
@@ -310,13 +520,16 @@ const Ride = () => {
                   start={startLocation}
                   destination={destination}
                   selectedRoute={selectedRoute}
+                  vehicleType={vehicleType}
+                  goodsType={goodsType}
+                  weight={weight}
                 />
                 
                 {selectedRoute && (
-                  <div className="mt-4 p-3 bg-gray-50 rounded-md border">
+                  <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-md border">
                     <div className="text-sm font-medium mb-2">Toll Information</div>
                     <div className="space-y-2">
-                      {selectedRoute.tolls.map((toll, index) => (
+                      {selectedRoute.tolls.map((toll: Toll, index: number) => (
                         <div key={index} className="flex justify-between text-sm">
                           <span>{toll.name}</span>
                           <span className="font-medium">₹{toll.cost}</span>

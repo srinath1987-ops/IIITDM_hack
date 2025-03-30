@@ -5,7 +5,7 @@ import { CheckCircle, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import Footer from '@/components/Footer';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { Switch } from '@/components/ui/switch';
 
 const PricingPage = () => {
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
@@ -98,20 +98,23 @@ const PricingPage = () => {
             <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-gray-900 dark:text-white mb-6">
               Simple, Transparent <span className="text-logistics-600 dark:text-logistics-400">Pricing</span>
             </h1>
-            <p className="text-lg md:text-xl text-gray-600 dark:text-gray-400 mb-8">
+            <p className="text-lg md:text-xl text-gray-600 dark:text-gray-300 mb-8">
               Choose the plan that's right for your business, from small fleets to nationwide operations.
             </p>
 
             {/* Billing cycle toggle */}
             <div className="flex justify-center items-center mb-12">
-              <ToggleGroup type="single" value={billingCycle} onValueChange={(value) => value && setBillingCycle(value as 'monthly' | 'yearly')}>
-                <ToggleGroupItem value="monthly" className="px-4 py-2 dark:text-white dark:data-[state=on]:bg-logistics-700">
-                  Monthly
-                </ToggleGroupItem>
-                <ToggleGroupItem value="yearly" className="px-4 py-2 dark:text-white dark:data-[state=on]:bg-logistics-700">
-                  Yearly <span className="ml-1 text-xs text-green-600 dark:text-green-400">(Save 20%)</span>
-                </ToggleGroupItem>
-              </ToggleGroup>
+              <div className="flex items-center space-x-4 bg-gray-100 dark:bg-gray-800 p-2 rounded-full">
+                <span className={`px-4 py-2 rounded-full cursor-pointer transition-colors ${billingCycle === 'monthly' ? 'bg-blue-500 text-white' : 'text-gray-700 dark:text-gray-300'}`} onClick={() => setBillingCycle('monthly')}>Monthly</span>
+                <Switch 
+                  checked={billingCycle === 'yearly'}
+                  onCheckedChange={(checked) => setBillingCycle(checked ? 'yearly' : 'monthly')}
+                  className="data-[state=checked]:bg-blue-500"
+                />
+                <span className={`px-4 py-2 rounded-full cursor-pointer transition-colors ${billingCycle === 'yearly' ? 'bg-blue-500 text-white' : 'text-gray-700 dark:text-gray-300'}`} onClick={() => setBillingCycle('yearly')}>
+                  Annual <span className="text-xs text-green-600 dark:text-green-400">(Save 20%)</span>
+                </span>
+              </div>
             </div>
           </div>
         </div>

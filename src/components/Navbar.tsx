@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Truck, Menu, X, LogOut } from 'lucide-react';
@@ -15,7 +14,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-const Navbar = () => {
+interface NavbarProps {
+  toggleMobileSidebar: () => void;
+}
+
+const Navbar = ({ toggleMobileSidebar }: NavbarProps) => {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   const { user, signOut } = useAuth();
   const { toast } = useToast();
@@ -36,7 +39,6 @@ const Navbar = () => {
     }
   };
 
-  // Get user initials for avatar
   const getUserInitials = () => {
     if (!user || !user.email) return 'U';
     const email = user.email;
@@ -99,7 +101,7 @@ const Navbar = () => {
           <Button 
             variant="ghost" 
             size="icon" 
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            onClick={toggleMobileSidebar}
             aria-label="Toggle menu"
           >
             {isMenuOpen ? <X /> : <Menu />}
@@ -107,7 +109,6 @@ const Navbar = () => {
         </div>
       </div>
 
-      {/* Mobile menu */}
       {isMenuOpen && (
         <div className="md:hidden bg-white dark:bg-gray-800 w-full py-2 px-4 pt-2 border-t border-gray-200 dark:border-gray-700 animate-fade-in">
           <div className="flex flex-col space-y-2">
