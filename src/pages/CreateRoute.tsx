@@ -169,7 +169,7 @@ const CreateRoute = () => {
     },
     onSuccess: (data) => {
       toast.success('Route created successfully');
-      navigate(`/route/${data.id}`);
+      navigate(`/route/${data.id}/start`);
     },
     onError: (error: any) => {
       toast.error(error.message || 'Failed to create route');

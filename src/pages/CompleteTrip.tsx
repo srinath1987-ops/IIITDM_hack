@@ -28,8 +28,6 @@ const completeSchema = z.object({
   actual_fuel_cost: z.number().min(0, 'Fuel cost cannot be negative'),
   actual_toll_cost: z.number().min(0, 'Toll cost cannot be negative'),
   fuel_consumed: z.number().min(0, 'Fuel consumed cannot be negative'),
-  average_speed: z.number().min(0, 'Speed cannot be negative'),
-  max_speed: z.number().min(0, 'Speed cannot be negative'),
   status: z.enum(['COMPLETED', 'CANCELLED', 'DELAYED']),
   delay_minutes: z.number().optional(),
   delay_reason: z.string().optional(),
@@ -56,8 +54,6 @@ const CompleteTrip = () => {
       actual_fuel_cost: 0,
       actual_toll_cost: 0,
       fuel_consumed: 0,
-      average_speed: 0,
-      max_speed: 0,
       status: 'COMPLETED',
       delay_minutes: 0,
       delay_reason: '',
@@ -136,8 +132,6 @@ const CompleteTrip = () => {
         actual_fuel_cost: values.actual_fuel_cost,
         actual_toll_cost: values.actual_toll_cost,
         fuel_consumed: values.fuel_consumed,
-        average_speed: values.average_speed,
-        max_speed: values.max_speed,
         status: values.status,
         delay_minutes: values.status === 'DELAYED' ? delay : null,
         delay_reason: values.status === 'DELAYED' ? values.delay_reason : null,
@@ -170,7 +164,7 @@ const CompleteTrip = () => {
     },
     onSuccess: () => {
       toast.success('Trip completed successfully');
-      navigate('/history');
+      navigate('/routes');
     },
     onError: (error: any) => {
       toast.error(error.message || 'Failed to complete trip');
@@ -193,16 +187,6 @@ const CompleteTrip = () => {
       if (trip.routes.distance_km) {
         const estimatedFuelConsumed = trip.routes.distance_km / 10; // Liters
         form.setValue('fuel_consumed', Math.round(estimatedFuelConsumed * 10) / 10);
-      }
-      
-      // Estimate average speed if we have time and distance
-      if (trip.actual_start_time && trip.routes.distance_km) {
-        const startTime = new Date(trip.actual_start_time);
-        const travelTimeHours = (new Date().getTime() - startTime.getTime()) / (1000 * 60 * 60);
-        const averageSpeed = travelTimeHours > 0 ? 
-          Math.round(trip.routes.distance_km / travelTimeHours) : 0;
-        form.setValue('average_speed', averageSpeed);
-        form.setValue('max_speed', Math.round(averageSpeed * 1.3)); // Estimate max speed
       }
     }
   }, [trip, form]);
@@ -540,7 +524,7 @@ const CompleteTrip = () => {
                       />
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
                       {/* Fuel Consumed */}
                       <FormField
                         control={form.control}
@@ -550,36 +534,6 @@ const CompleteTrip = () => {
                             <FormLabel>Fuel Consumed (liters)</FormLabel>
                             <FormControl>
                               <Input type="number" step="0.1" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      {/* Average Speed */}
-                      <FormField
-                        control={form.control}
-                        name="average_speed"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Average Speed (km/h)</FormLabel>
-                            <FormControl>
-                              <Input type="number" step="1" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      {/* Maximum Speed */}
-                      <FormField
-                        control={form.control}
-                        name="max_speed"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Maximum Speed (km/h)</FormLabel>
-                            <FormControl>
-                              <Input type="number" step="1" {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>

@@ -162,7 +162,7 @@ const StartTrip = () => {
     },
     onSuccess: (data) => {
       toast.success('Trip started successfully');
-      navigate(`/travel/${data.id}`);
+      navigate(`/travel/${data.id}/complete`);
     },
     onError: (error: any) => {
       toast.error(error.message || 'Failed to start trip');
